@@ -2,17 +2,20 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { novelsApi } from '@/api/novels'
-import type { Novel } from '@/types'
+import type { NovelListItem } from '@novel-hub/contracts'
 
-function progressPercent(novel: Novel) {
+function progressPercent(novel: NovelListItem) {
   if (!novel.lastChapterNumber) return 0
-  return Math.min(100, Math.round((novel.lastReadChapterNumber / novel.lastChapterNumber) * 100))
+  const current = novel.lastReadChapterNumber ?? 0
+  return Math.min(100, Math.round((current / novel.lastChapterNumber) * 100))
 }
 
-const STATUS_MAP: Record<Novel['status'], { label: string; cls: string }> = {
+const STATUS_MAP: Record<NovelListItem['status'], { label: string; cls: string }> = {
   ONGOING: { label: 'Em andamento', cls: 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60' },
   COMPLETED: { label: 'Completo', cls: 'bg-sky-950/60 text-sky-400 border-sky-900/60' },
   HIATUS: { label: 'Hiato', cls: 'bg-amber-950/60 text-amber-400 border-amber-900/60' },
+  DROPPED: { label: 'Dropada', cls: 'bg-red-950/60 text-red-400 border-red-900/60' },
+  UNKNOWN: { label: 'Indefinido', cls: 'bg-zinc-900/60 text-zinc-300 border-zinc-700/60' },
 }
 
 export function NovelsPage() {
@@ -181,7 +184,7 @@ export function NovelsPage() {
 
                     <div className="mt-3">
                       <div className="flex justify-between text-[10px] text-parchment-muted mb-1 font-body">
-                        <span>Cap. {novel.lastReadChapterNumber}/{novel.lastChapterNumber}</span>
+                        <span>Cap. {novel.lastReadChapterNumber ?? 0}/{novel.lastChapterNumber ?? 0}</span>
                         <span className="text-amber-light">{pct}%</span>
                       </div>
                       <div className="h-1 bg-ink-4 rounded-full overflow-hidden">

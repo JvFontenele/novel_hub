@@ -12,8 +12,8 @@ function formatDate(iso: string) {
 
 const STATUS_STYLES = {
   SUCCESS: 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60',
-  FAILURE: 'bg-red-950/60 text-red-400 border-red-900/60',
-  RUNNING: 'bg-amber-950/60 text-amber-400 border-amber-900/60',
+  FAILED: 'bg-red-950/60 text-red-400 border-red-900/60',
+  PARTIAL: 'bg-amber-950/60 text-amber-400 border-amber-900/60',
 }
 
 export function AdminPage() {
@@ -84,7 +84,7 @@ export function AdminPage() {
                       {run.durationMs}ms
                     </td>
                     <td className="px-4 py-3 text-xs text-parchment-muted font-body">
-                      {formatDate(run.ranAt)}
+                      {formatDate(run.startedAt)}
                     </td>
                   </tr>
                 ))}
@@ -130,12 +130,14 @@ export function AdminPage() {
                     </a>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className="text-red-400 text-sm font-semibold font-body">{f.failureCount}×</span>
-                    <p className="text-[10px] text-parchment-muted font-body mt-0.5">{formatDate(f.lastFailureAt)}</p>
+                    <span className="text-red-400 text-sm font-semibold font-body">{f.consecutiveFailures}×</span>
+                    <p className="text-[10px] text-parchment-muted font-body mt-0.5">
+                      {f.lastCheckedAt ? formatDate(f.lastCheckedAt) : 'sem registro'}
+                    </p>
                   </div>
                 </div>
                 <div className="bg-red-950/30 border border-red-900/30 rounded-lg px-3 py-2">
-                  <p className="text-xs text-red-300 font-mono leading-relaxed">{f.lastError}</p>
+                  <p className="text-xs text-red-300 font-mono leading-relaxed">{f.status}</p>
                 </div>
               </div>
             ))}

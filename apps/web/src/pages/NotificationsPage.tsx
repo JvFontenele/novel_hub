@@ -69,12 +69,14 @@ export function NotificationsPage() {
                       <div>
                         <p className="text-sm text-parchment font-body">{n.title}</p>
                         <div className="flex items-center gap-3 mt-1.5">
-                          <Link
-                            to={`/novels/${n.novelId}`}
-                            className="text-xs text-amber-light hover:text-amber transition-colors font-body"
-                          >
-                            Ver novel →
-                          </Link>
+                          {n.novelId && (
+                            <Link
+                              to={`/novels/${n.novelId}`}
+                              className="text-xs text-amber-light hover:text-amber transition-colors font-body"
+                            >
+                              Ver novel →
+                            </Link>
+                          )}
                           <span className="text-xs text-parchment-muted font-body">{formatDate(n.createdAt)}</span>
                         </div>
                       </div>
@@ -104,12 +106,14 @@ export function NotificationsPage() {
                     <div>
                       <p className="text-sm text-parchment-dim font-body">{n.title}</p>
                       <div className="flex items-center gap-3 mt-1">
-                        <Link
-                          to={`/novels/${n.novelId}`}
-                          className="text-xs text-parchment-muted hover:text-amber-light transition-colors font-body"
-                        >
-                          Ver novel →
-                        </Link>
+                        {n.novelId && (
+                          <Link
+                            to={`/novels/${n.novelId}`}
+                            className="text-xs text-parchment-muted hover:text-amber-light transition-colors font-body"
+                          >
+                            Ver novel →
+                          </Link>
+                        )}
                         <span className="text-xs text-parchment-muted font-body">{formatDate(n.createdAt)}</span>
                       </div>
                     </div>

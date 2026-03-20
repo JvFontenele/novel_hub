@@ -60,4 +60,13 @@ export async function novelsRoutes(fastify: FastifyInstance) {
       return reply.send(result);
     },
   );
+
+  fastify.get<{ Params: { novelId: string } }>(
+    '/novels/:novelId/events',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const items = await novelsRepo.listEventsByNovel(request.params.novelId, request.user.sub);
+      return reply.send({ items });
+    },
+  );
 }

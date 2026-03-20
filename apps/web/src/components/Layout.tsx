@@ -3,8 +3,6 @@ import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { notificationsApi } from '@/api/notifications'
 
-const IS_MOCK = import.meta.env.VITE_MOCK_API === 'true'
-
 export function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -54,11 +52,6 @@ export function Layout() {
             <span className="font-display text-lg text-parchment font-light tracking-tight hidden sm:block">
               Novel Hub
             </span>
-            {IS_MOCK && (
-              <span className="text-[10px] bg-amber-muted/60 text-amber-light border border-amber-dim/40 px-1.5 py-0.5 rounded font-body tracking-wide hidden sm:block">
-                DEMO
-              </span>
-            )}
           </Link>
 
           <nav className="flex items-center gap-1">

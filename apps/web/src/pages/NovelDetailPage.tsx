@@ -3,7 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { novelsApi } from '@/api/novels'
 
-function formatDate(iso: string) {
+function formatDate(iso: string | null) {
+  if (!iso) return 'sem data'
   const d = new Date(iso)
   const diff = Date.now() - d.getTime()
   if (diff < 86_400_000) {
@@ -65,7 +66,7 @@ export function NovelDetailPage() {
   )
 
   const pct = novel.lastChapterNumber
-    ? Math.min(100, Math.round((novel.lastReadChapterNumber / novel.lastChapterNumber) * 100))
+    ? Math.min(100, Math.round(((novel.lastReadChapterNumber ?? 0) / novel.lastChapterNumber) * 100))
     : 0
 
   return (
@@ -111,7 +112,7 @@ export function NovelDetailPage() {
                 />
               </div>
               <p className="text-[11px] text-parchment-muted mt-1.5 font-body">
-                Lido até capítulo {novel.lastReadChapterNumber}
+                Lido até capítulo {novel.lastReadChapterNumber ?? 0}
               </p>
             </div>
 
@@ -119,7 +120,7 @@ export function NovelDetailPage() {
               <input
                 type="number"
                 min={0}
-                max={novel.lastChapterNumber}
+                max={novel.lastChapterNumber ?? undefined}
                 value={progressInput}
                 onChange={(e) => setProgressInput(e.target.value)}
                 placeholder={`Atualizar capítulo…`}
@@ -203,14 +204,14 @@ export function NovelDetailPage() {
                 className="flex items-center justify-between px-4 py-3 hover:bg-ink-2 transition-colors group"
               >
                 <div className="flex items-center gap-3">
-                  {ch.number <= novel.lastReadChapterNumber && (
+                  {ch.chapterNumber <= (novel.lastReadChapterNumber ?? 0) && (
                     <span className="w-4 h-4 rounded-full bg-amber/20 text-amber text-[9px] flex items-center justify-center flex-shrink-0">✓</span>
                   )}
-                  <span className={`text-sm font-body ${ch.number <= novel.lastReadChapterNumber ? 'text-parchment-muted' : 'text-parchment'} group-hover:text-parchment transition-colors`}>
+                  <span className={`text-sm font-body ${ch.chapterNumber <= (novel.lastReadChapterNumber ?? 0) ? 'text-parchment-muted' : 'text-parchment'} group-hover:text-parchment transition-colors`}>
                     {ch.title ? (
-                      <><span className="text-parchment-muted">Cap. {ch.number}</span> — {ch.title}</>
+                      <><span className="text-parchment-muted">Cap. {ch.chapterNumber}</span> — {ch.title}</>
                     ) : (
-                      `Capítulo ${ch.number}`
+                      `Capítulo ${ch.chapterNumber}`
                     )}
                   </span>
                 </div>

@@ -1,5 +1,5 @@
 {
-  "name": "@novel-hub/shared",
+  "name": "@novel-hub/scraping",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,12 @@
     "build": "tsc",
     "dev": "tsc --watch"
   },
+  "dependencies": {
+    "playwright-core": "^1.54.2",
+    "zod": "^3.22.0"
+  },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "typescript": "^5.4.0"
   }
 }

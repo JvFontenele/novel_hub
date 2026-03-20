@@ -1,30 +1,30 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
-import type { User } from '@/types'
+import type { UserProfile } from '@novel-hub/contracts'
 
 interface AuthContextValue {
-  user: User | null
+  user: UserProfile | null
   token: string | null
-  login: (user: User, token: string) => void
+  login: (user: UserProfile, token: string) => void
   logout: () => void
   isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-function getStoredUser(): User | null {
+function getStoredUser(): UserProfile | null {
   try {
     const raw = localStorage.getItem('user')
-    return raw ? (JSON.parse(raw) as User) : null
+    return raw ? (JSON.parse(raw) as UserProfile) : null
   } catch {
     return null
   }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(getStoredUser)
+  const [user, setUser] = useState<UserProfile | null>(getStoredUser)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
 
-  const login = useCallback((u: User, t: string) => {
+  const login = useCallback((u: UserProfile, t: string) => {
     setUser(u)
     setToken(t)
     localStorage.setItem('user', JSON.stringify(u))

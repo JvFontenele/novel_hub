@@ -9,6 +9,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@novel-hub/scraping": "workspace:*",
     "@novel-hub/shared": "workspace:*",
     "bullmq": "^5.0.0",
     "postgres": "^3.4.3",

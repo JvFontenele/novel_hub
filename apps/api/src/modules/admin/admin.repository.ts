@@ -23,12 +23,14 @@ export async function listCollectorRuns(limit = 50) {
 export async function listSourceFailures() {
   return sql`
     SELECT
-      ns.id,
-      ns.url,
+      ns.id AS "sourceId",
+      ns.url AS "sourceUrl",
+      n.title AS "novelTitle",
       ns.status,
       ns.consecutive_failures AS "consecutiveFailures",
       ns.last_checked_at AS "lastCheckedAt"
     FROM novel_sources ns
+    JOIN novels n ON n.id = ns.novel_id
     WHERE ns.consecutive_failures > 0
     ORDER BY ns.consecutive_failures DESC
     LIMIT 50

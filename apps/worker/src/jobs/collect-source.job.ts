@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { Job } from 'bullmq';
 import type { CollectSourceJobData } from '@novel-hub/shared';
+import { resolveConnector } from '@novel-hub/scraping';
 import { sql } from '../db/client.js';
-import { resolveConnector } from '../connectors/connector.registry.js';
 
 export async function collectSourceJob(job: Job<CollectSourceJobData>) {
   const { sourceId } = job.data;

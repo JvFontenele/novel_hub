@@ -4,8 +4,9 @@ import type { FastifyInstance } from 'fastify';
 import { config } from '../config.js';
 import type { JwtPayload } from '@novel-hub/shared';
 
-declare module 'fastify' {
-  interface FastifyRequest {
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    payload: JwtPayload;
     user: JwtPayload;
   }
 }

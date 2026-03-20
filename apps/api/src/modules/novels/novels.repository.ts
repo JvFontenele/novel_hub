@@ -21,10 +21,16 @@ export async function createSource(novelId: string, url: string, connectorKey: s
 export async function findNovelById(novelId: string, userId: string) {
   const [row] = await sql`
     SELECT
-      n.*,
-      s.last_read_chapter_number,
+      n.id AS "novelId",
+      n.title,
+      n.cover_url AS "coverUrl",
+      n.synopsis,
+      n.author,
+      n.status,
+      n.last_chapter_number AS "lastChapterNumber",
+      s.last_read_chapter_number AS "lastReadChapterNumber",
       json_agg(json_build_object(
-        'id', ns.id,
+        'sourceId', ns.id,
         'url', ns.url,
         'status', ns.status,
         'monitoringEnabled', ns.monitoring_enabled,
@@ -72,4 +78,19 @@ export async function updateProgress(userId: string, novelId: string, lastReadCh
     RETURNING novel_id AS "novelId", last_read_chapter_number AS "lastReadChapterNumber"
   `;
   return sub ?? null;
+}
+
+export async function listEventsByNovel(novelId: string, userId: string) {
+  return sql`
+    SELECT
+      e.id AS "eventId",
+      e.type,
+      e.payload,
+      e.created_at AS "createdAt"
+    FROM events e
+    JOIN subscriptions s ON s.novel_id = e.novel_id AND s.user_id = ${userId}
+    WHERE e.novel_id = ${novelId}
+    ORDER BY e.created_at DESC
+    LIMIT 100
+  `;
 }

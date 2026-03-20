@@ -3,8 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '@/api/auth'
 import { useAuth } from '@/context/AuthContext'
 
-const IS_MOCK = import.meta.env.VITE_MOCK_API === 'true'
-
 function getErrorMessage(err: unknown): string {
   const status = (err as { response?: { status?: number } })?.response?.status
   if (status === 401) return 'Email ou senha incorretos.'
@@ -62,13 +60,6 @@ export function LoginPage() {
 
         <div className="card p-7 shadow-2xl shadow-black/60 animate-fade-up animate-delay-1">
           <h2 className="font-display text-xl text-parchment font-light mb-6">Entrar</h2>
-
-          {IS_MOCK && (
-            <div className="flex items-center gap-2 bg-amber-muted/40 border border-amber-dim/40 text-amber-light text-xs rounded-lg px-3 py-2 mb-5 font-body">
-              <span>⚡</span>
-              <span>Modo demo ativo — cadastre uma conta para testar</span>
-            </div>
-          )}
 
           {error && (
             <div className="bg-red-950/50 border border-red-900/60 text-red-300 text-sm rounded-lg px-4 py-3 mb-5 font-body">

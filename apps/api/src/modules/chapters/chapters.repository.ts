@@ -4,7 +4,7 @@ export async function listChaptersByNovel(novelId: string, page = 1, pageSize = 
   const offset = (page - 1) * pageSize;
   return sql`
     SELECT
-      id,
+      id AS "chapterId",
       chapter_number AS "chapterNumber",
       title,
       url,
