@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { novelsApi } from '@/api/novels'
+import { getCoverImageUrl, novelsApi } from '@/api/novels'
 import type { NovelListItem } from '@novel-hub/contracts'
 
 function progressPercent(novel: NovelListItem) {
@@ -152,6 +152,7 @@ export function NovelsPage() {
           {novels.map((novel, i) => {
             const pct = progressPercent(novel)
             const st = STATUS_MAP[novel.status]
+            const coverImageUrl = getCoverImageUrl(novel.coverUrl)
             return (
               <Link
                 key={novel.novelId}
@@ -160,9 +161,9 @@ export function NovelsPage() {
                 style={{ animationDelay: `${i * 0.05}s`, opacity: 0 }}
               >
                 <div className="flex items-start gap-3">
-                  {novel.coverUrl ? (
+                  {coverImageUrl ? (
                     <img
-                      src={novel.coverUrl}
+                      src={coverImageUrl}
                       alt={novel.title}
                       className="w-12 h-[68px] object-cover rounded-md flex-shrink-0 border border-ink-4"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}

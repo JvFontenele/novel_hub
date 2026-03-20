@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { novelsApi } from '@/api/novels'
+import { getCoverImageUrl, novelsApi } from '@/api/novels'
 
 function formatDate(iso: string | null) {
   if (!iso) return 'sem data'
@@ -52,6 +52,16 @@ export function NovelDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['novel', novelId] }),
   })
 
+  const reprocessSourceMutation = useMutation({
+    mutationFn: (sourceId: string) => novelsApi.triggerSourceCollection(sourceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['novel', novelId] })
+      queryClient.invalidateQueries({ queryKey: ['events', novelId] })
+      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
+      queryClient.invalidateQueries({ queryKey: ['novels'] })
+    },
+  })
+
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -68,6 +78,7 @@ export function NovelDetailPage() {
   const pct = novel.lastChapterNumber
     ? Math.min(100, Math.round(((novel.lastReadChapterNumber ?? 0) / novel.lastChapterNumber) * 100))
     : 0
+  const coverImageUrl = getCoverImageUrl(novel.coverUrl)
 
   return (
     <div className="animate-fade-in">
@@ -81,9 +92,9 @@ export function NovelDetailPage() {
       {/* Hero */}
       <div className="card p-6 mb-5 shadow-lg shadow-black/30">
         <div className="flex gap-5">
-          {novel.coverUrl ? (
+          {coverImageUrl ? (
             <img
-              src={novel.coverUrl}
+              src={coverImageUrl}
               alt={novel.title}
               className="w-20 h-28 object-cover rounded-lg flex-shrink-0 border border-ink-4"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
@@ -146,25 +157,44 @@ export function NovelDetailPage() {
           </h2>
           <div className="space-y-2">
             {novel.sources.map((src) => (
-              <div key={src.sourceId} className="flex items-center justify-between gap-4">
-                <a
-                  href={src.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-amber-light hover:text-amber hover:underline truncate font-body"
-                >
-                  {src.url}
-                </a>
-                <button
-                  onClick={() => toggleSourceMutation.mutate({ sourceId: src.sourceId, enabled: !src.monitoringEnabled })}
-                  className={`badge flex-shrink-0 transition-colors ${
-                    src.monitoringEnabled
-                      ? 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60 hover:bg-red-950/60 hover:text-red-400 hover:border-red-900/60'
-                      : 'bg-red-950/60 text-red-400 border-red-900/60 hover:bg-emerald-950/60 hover:text-emerald-400 hover:border-emerald-900/60'
-                  }`}
-                >
-                  {src.monitoringEnabled ? '● Ativo' : '○ Pausado'}
-                </button>
+              <div key={src.sourceId} className="rounded-lg border border-ink-3 bg-ink-2/50 px-3 py-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <a
+                      href={src.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-amber-light hover:text-amber hover:underline break-all font-body"
+                    >
+                      {src.url}
+                    </a>
+                    <p className="mt-1 text-[11px] text-parchment-muted font-body">
+                      Status: {src.status} • Última verificação: {formatDate(src.lastCheckedAt)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => toggleSourceMutation.mutate({ sourceId: src.sourceId, enabled: !src.monitoringEnabled })}
+                    className={`badge flex-shrink-0 transition-colors ${
+                      src.monitoringEnabled
+                        ? 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60 hover:bg-red-950/60 hover:text-red-400 hover:border-red-900/60'
+                        : 'bg-red-950/60 text-red-400 border-red-900/60 hover:bg-emerald-950/60 hover:text-emerald-400 hover:border-emerald-900/60'
+                    }`}
+                  >
+                    {src.monitoringEnabled ? '● Ativo' : '○ Pausado'}
+                  </button>
+                </div>
+
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={() => reprocessSourceMutation.mutate(src.sourceId)}
+                    disabled={reprocessSourceMutation.isPending}
+                    className="rounded-lg border border-amber/30 bg-amber/10 px-3 py-1.5 text-xs font-semibold text-amber-light transition-colors hover:bg-amber/20 disabled:opacity-40 font-body"
+                  >
+                    {reprocessSourceMutation.isPending && reprocessSourceMutation.variables === src.sourceId
+                      ? 'Reprocessando...'
+                      : 'Reprocessar agora'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

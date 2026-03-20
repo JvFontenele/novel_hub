@@ -8,8 +8,14 @@ import type {
   NovelListItem,
   PaginatedResponse,
   ToggleSourceMonitoringInput,
+  TriggerSourceCollectionResponse,
   UpdateProgressResponse,
 } from '@novel-hub/contracts'
+
+export function getCoverImageUrl(coverUrl: string | null) {
+  if (!coverUrl) return null
+  return `/api/v1/assets/cover?url=${encodeURIComponent(coverUrl)}`
+}
 
 export const novelsApi = {
   list: (): Promise<NovelListItem[]> =>
@@ -34,4 +40,7 @@ export const novelsApi = {
 
   toggleSource: (sourceId: string, monitoringEnabled: boolean) =>
     api.patch(`/sources/${sourceId}`, { monitoringEnabled } satisfies ToggleSourceMonitoringInput).then((r) => r.data),
+
+  triggerSourceCollection: (sourceId: string): Promise<TriggerSourceCollectionResponse> =>
+    api.post<TriggerSourceCollectionResponse>(`/sources/${sourceId}/collect`).then((r) => r.data),
 }
