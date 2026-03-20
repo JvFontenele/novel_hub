@@ -131,6 +131,18 @@ function extractSynopsis(html: string): string | null {
 }
 
 function extractCoverUrl(html: string): string | null {
+  const imageMatch = html.match(/<img[^>]+src="([^"]*bookcover[^"]+)"/i);
+  if (imageMatch) {
+    const src = decodeHtml(imageMatch[1]).trim();
+    if (src.startsWith('//')) {
+      return `https:${src}`;
+    }
+    if (src.startsWith('/')) {
+      return `https://www.webnovel.com${src}`;
+    }
+    return src;
+  }
+
   return extractMeta(html, 'twitter:image')
     ?? extractMeta(html, 'og:image')
     ?? null;

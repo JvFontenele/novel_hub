@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { TriggerSourceCollectionResponse } from '@novel-hub/contracts';
 import { z } from 'zod';
 import * as sourcesService from './sources.service.js';
 
@@ -24,6 +25,19 @@ export async function sourcesRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ message: 'Source not found' });
       }
       return reply.send(source);
+    },
+  );
+
+  fastify.post<{ Params: { sourceId: string } }>(
+    '/sources/:sourceId/collect',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const result = await sourcesService.triggerCollection(request.params.sourceId, request.user.sub);
+      if (!result) {
+        return reply.code(404).send({ message: 'Source not found' });
+      }
+
+      return reply.code(202).send(result satisfies TriggerSourceCollectionResponse);
     },
   );
 }

@@ -8,6 +8,7 @@ import type {
   NovelListItem,
   PaginatedResponse,
   ToggleSourceMonitoringInput,
+  TriggerSourceCollectionResponse,
   UpdateProgressResponse,
 } from '@novel-hub/contracts'
 
@@ -34,4 +35,7 @@ export const novelsApi = {
 
   toggleSource: (sourceId: string, monitoringEnabled: boolean) =>
     api.patch(`/sources/${sourceId}`, { monitoringEnabled } satisfies ToggleSourceMonitoringInput).then((r) => r.data),
+
+  collectSourceNow: (sourceId: string): Promise<TriggerSourceCollectionResponse> =>
+    api.post<TriggerSourceCollectionResponse>(`/sources/${sourceId}/collect`).then((r) => r.data),
 }

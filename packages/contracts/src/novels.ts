@@ -64,3 +64,8 @@ export interface UpdateProgressResponse {
 export interface ToggleSourceMonitoringInput {
   monitoringEnabled: boolean;
 }
+
+export interface TriggerSourceCollectionResponse {
+  queued: true;
+  sourceId: string;
+}

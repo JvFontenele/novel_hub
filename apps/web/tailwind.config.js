@@ -4,29 +4,42 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: {
-          DEFAULT: '#0c0a07',
-          1: '#13100b',
-          2: '#1a1610',
-          3: '#242016',
-          4: '#2e2a1e',
-          5: '#3d3828',
+        border: 'var(--border)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
         },
-        amber: {
-          DEFAULT: '#c9943a',
-          light: '#e8b96a',
-          dim: '#8a6428',
-          muted: '#5c4219',
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
         },
-        parchment: {
-          DEFAULT: '#e8dcc8',
-          dim: '#a8997e',
-          muted: '#6b5e47',
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
         },
       },
       fontFamily: {
-        display: ['Fraunces', 'Georgia', 'serif'],
-        body: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', '"Geist Variable"', 'system-ui', 'sans-serif'],
+        heading: ['Fraunces', 'Georgia', 'serif'],
       },
       animation: {
         'fade-up': 'fadeUp 0.5s ease forwards',

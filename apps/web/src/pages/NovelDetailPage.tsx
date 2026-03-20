@@ -1,16 +1,20 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, BookOpen, History, Radar, RefreshCcw } from 'lucide-react'
 import { novelsApi } from '@/api/novels'
+import { resolveCoverImageUrl } from '@/lib/assets'
+import { formatDateTime, formatRelativeDate } from '@/lib/format'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-function formatDate(iso: string | null) {
-  if (!iso) return 'sem data'
-  const d = new Date(iso)
-  const diff = Date.now() - d.getTime()
-  if (diff < 86_400_000) {
-    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  }
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+const SOURCE_STATUS = {
+  active: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300',
+  paused: 'bg-rose-500/12 text-rose-700 dark:text-rose-300',
 }
 
 export function NovelDetailPage() {
@@ -52,192 +56,280 @@ export function NovelDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['novel', novelId] }),
   })
 
+  const collectSourceMutation = useMutation({
+    mutationFn: (sourceId: string) => novelsApi.collectSourceNow(sourceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['novel', novelId] })
+      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
+      queryClient.invalidateQueries({ queryKey: ['events', novelId] })
+      queryClient.invalidateQueries({ queryKey: ['novels'] })
+    },
+  })
+
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-4">
-        <div className="h-4 bg-ink-3 rounded w-24" />
-        <div className="card p-6 h-40" />
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-72 rounded-[1.75rem]" />
+        <Skeleton className="h-96 rounded-[1.75rem]" />
       </div>
     )
   }
 
-  if (!novel) return (
-    <div className="text-center py-24 text-parchment-muted font-body">Novel não encontrada.</div>
-  )
+  if (!novel) {
+    return <div className="py-20 text-center text-muted-foreground">Novel não encontrada.</div>
+  }
 
   const pct = novel.lastChapterNumber
     ? Math.min(100, Math.round(((novel.lastReadChapterNumber ?? 0) / novel.lastChapterNumber) * 100))
     : 0
 
+  const coverImageUrl = resolveCoverImageUrl(novel.coverUrl)
+  const lastCheckedAt =
+    novel.sources
+      .map((source) => source.lastCheckedAt)
+      .filter((value): value is string => Boolean(value))
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null
+
   return (
-    <div className="animate-fade-in">
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1.5 text-xs text-parchment-muted hover:text-parchment transition-colors mb-6 font-body"
-      >
-        ← Voltar à biblioteca
+    <div className="space-y-8">
+      <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+        <ArrowLeft className="size-4" />
+        Voltar
       </Link>
 
-      {/* Hero */}
-      <div className="card p-6 mb-5 shadow-lg shadow-black/30">
-        <div className="flex gap-5">
-          {novel.coverUrl ? (
-            <img
-              src={novel.coverUrl}
-              alt={novel.title}
-              className="w-20 h-28 object-cover rounded-lg flex-shrink-0 border border-ink-4"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-            />
-          ) : (
-            <div className="w-20 h-28 bg-ink-3 rounded-lg flex-shrink-0 flex items-center justify-center text-3xl border border-ink-4">
-              📕
-            </div>
-          )}
+      <section className="hero-panel p-6 sm:p-8">
+        <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+          <div className="overflow-hidden rounded-[1.75rem] border border-border/70 bg-muted/60">
+            {coverImageUrl ? (
+              <img
+                src={coverImageUrl}
+                alt={novel.title}
+                className="h-full min-h-[320px] w-full object-cover"
+                onError={(e) => {
+                  ;(e.target as HTMLImageElement).style.display = 'none'
+                }}
+              />
+            ) : (
+              <div className="flex min-h-[320px] items-center justify-center text-6xl">📖</div>
+            )}
+          </div>
 
-          <div className="flex-1 min-w-0">
-            <h1 className="font-display text-xl text-parchment font-light leading-snug">{novel.title}</h1>
-            <p className="text-xs text-parchment-muted mt-1 font-body">
-              {novel.lastChapterNumber} capítulos disponíveis
-            </p>
-
-            <div className="mt-4 mb-1">
-              <div className="flex justify-between text-xs font-body mb-1.5">
-                <span className="text-parchment-muted">Progresso</span>
-                <span className="text-amber font-medium">{pct}%</span>
-              </div>
-              <div className="h-1.5 bg-ink-4 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber rounded-full transition-all duration-700"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <p className="text-[11px] text-parchment-muted mt-1.5 font-body">
-                Lido até capítulo {novel.lastReadChapterNumber ?? 0}
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h1 className="max-w-4xl text-4xl leading-tight sm:text-5xl">{novel.title}</h1>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                {novel.lastReadChapterNumber ?? 0} de {novel.lastChapterNumber ?? 0}
               </p>
             </div>
 
-            <div className="flex items-center gap-2 mt-3">
-              <input
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="metric-tile">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Progresso</p>
+                <p className="mt-2 text-3xl font-semibold">{pct}%</p>
+              </div>
+              <div className="metric-tile">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Lido</p>
+                <p className="mt-2 text-3xl font-semibold">{novel.lastReadChapterNumber ?? 0}</p>
+              </div>
+              <div className="metric-tile">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Fontes</p>
+                <p className="mt-2 text-3xl font-semibold">{novel.sources.length}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Andamento da leitura</span>
+                <span className="font-semibold">{pct}%</span>
+              </div>
+              <div className="h-3 rounded-full bg-muted">
+                <div
+                  className="h-3 rounded-full bg-gradient-to-r from-primary to-orange-300 dark:to-amber-200"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-[160px_auto]">
+              <Input
                 type="number"
                 min={0}
                 max={novel.lastChapterNumber ?? undefined}
                 value={progressInput}
                 onChange={(e) => setProgressInput(e.target.value)}
-                placeholder={`Atualizar capítulo…`}
-                className="input-field !py-2 !text-xs w-44"
+                placeholder="Novo capítulo"
+                className="h-11 rounded-xl bg-background/70"
               />
-              <button
+              <Button
                 onClick={() => progressMutation.mutate(Number(progressInput))}
                 disabled={!progressInput || progressMutation.isPending}
-                className="bg-amber hover:bg-amber-light text-ink text-xs font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-40 font-body"
+                className="h-11 rounded-xl"
               >
-                {progressMutation.isPending ? '...' : 'Salvar'}
-              </button>
+                {progressMutation.isPending ? 'Salvando...' : 'Atualizar progresso'}
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Sources */}
-      {novel.sources.length > 0 && (
-        <div className="card p-4 mb-5">
-          <h2 className="text-[11px] font-body font-medium text-parchment-muted uppercase tracking-widest mb-3">
-            Fontes monitoradas
-          </h2>
-          <div className="space-y-2">
-            {novel.sources.map((src) => (
-              <div key={src.sourceId} className="flex items-center justify-between gap-4">
-                <a
-                  href={src.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-amber-light hover:text-amber hover:underline truncate font-body"
-                >
-                  {src.url}
-                </a>
-                <button
-                  onClick={() => toggleSourceMutation.mutate({ sourceId: src.sourceId, enabled: !src.monitoringEnabled })}
-                  className={`badge flex-shrink-0 transition-colors ${
-                    src.monitoringEnabled
-                      ? 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60 hover:bg-red-950/60 hover:text-red-400 hover:border-red-900/60'
-                      : 'bg-red-950/60 text-red-400 border-red-900/60 hover:bg-emerald-950/60 hover:text-emerald-400 hover:border-emerald-900/60'
-                  }`}
-                >
-                  {src.monitoringEnabled ? '● Ativo' : '○ Pausado'}
-                </button>
+      <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <Card className="surface-panel py-0">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Radar className="size-5 text-primary" />
+              Fontes monitoradas
+            </CardTitle>
+            <CardDescription>Controle rápido por source.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {novel.sources.map((source) => (
+              <div key={source.sourceId} className="rounded-2xl border border-border/70 bg-background/60 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-2">
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block break-all text-sm font-medium hover:text-primary"
+                    >
+                      {source.url}
+                    </a>
+                    <Badge className={`rounded-full border-0 ${source.monitoringEnabled ? SOURCE_STATUS.active : SOURCE_STATUS.paused}`}>
+                      {source.monitoringEnabled ? 'Monitoramento ativo' : 'Monitoramento pausado'}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => collectSourceMutation.mutate(source.sourceId)}
+                      disabled={collectSourceMutation.isPending}
+                    >
+                      <RefreshCcw className="size-4" />
+                      {collectSourceMutation.isPending ? 'Coletando...' : 'Coletar agora'}
+                    </Button>
+                    <Button
+                      variant={source.monitoringEnabled ? 'secondary' : 'default'}
+                      className="rounded-full"
+                      onClick={() =>
+                        toggleSourceMutation.mutate({
+                          sourceId: source.sourceId,
+                          enabled: !source.monitoringEnabled,
+                        })
+                      }
+                    >
+                      {source.monitoringEnabled ? 'Pausar' : 'Ativar'}
+                    </Button>
+                  </div>
+                </div>
               </div>
             ))}
-          </div>
-        </div>
-      )}
+          </CardContent>
+        </Card>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-ink-1 p-1 rounded-xl border border-ink-3 w-fit">
-        {(['chapters', 'events'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 text-xs font-body font-medium rounded-lg transition-all duration-150 ${
-              activeTab === tab
-                ? 'bg-ink-3 text-parchment shadow-sm'
-                : 'text-parchment-muted hover:text-parchment'
-            }`}
-          >
-            {tab === 'chapters' ? 'Capítulos' : 'Histórico'}
-          </button>
-        ))}
-      </div>
+        <Card className="surface-panel py-0">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="size-5 text-primary" />
+              Resumo
+            </CardTitle>
+            <CardDescription>Visão geral da leitura.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border/70 bg-background/60 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Último capítulo lido</p>
+              <p className="mt-2 text-3xl font-semibold">{novel.lastReadChapterNumber ?? 0}</p>
+            </div>
+            <div className="rounded-2xl border border-border/70 bg-background/60 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Último disponível</p>
+              <p className="mt-2 text-3xl font-semibold">{novel.lastChapterNumber ?? 0}</p>
+            </div>
+            <div className="rounded-2xl border border-border/70 bg-background/60 p-4 sm:col-span-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Última coleta</p>
+              <p className="mt-2 text-base font-semibold">
+                {lastCheckedAt ? formatDateTime(lastCheckedAt) : 'Sem data registrada'}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {lastCheckedAt ? formatRelativeDate(lastCheckedAt) : 'Aguardando coleta'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
-      {activeTab === 'chapters' && (
-        <div className="card overflow-hidden divide-y divide-ink-3">
-          {!chapters?.items.length ? (
-            <p className="text-center text-parchment-muted text-sm py-8 font-body">
-              Nenhum capítulo coletado ainda.
-            </p>
-          ) : (
-            chapters.items.map((ch) => (
-              <a
-                key={ch.chapterId}
-                href={ch.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-4 py-3 hover:bg-ink-2 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  {ch.chapterNumber <= (novel.lastReadChapterNumber ?? 0) && (
-                    <span className="w-4 h-4 rounded-full bg-amber/20 text-amber text-[9px] flex items-center justify-center flex-shrink-0">✓</span>
-                  )}
-                  <span className={`text-sm font-body ${ch.chapterNumber <= (novel.lastReadChapterNumber ?? 0) ? 'text-parchment-muted' : 'text-parchment'} group-hover:text-parchment transition-colors`}>
-                    {ch.title ? (
-                      <><span className="text-parchment-muted">Cap. {ch.chapterNumber}</span> — {ch.title}</>
-                    ) : (
-                      `Capítulo ${ch.chapterNumber}`
-                    )}
-                  </span>
-                </div>
-                <span className="text-[11px] text-parchment-muted font-body">{formatDate(ch.publishedAt)}</span>
-              </a>
-            ))
-          )}
-        </div>
-      )}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'chapters' | 'events')} className="space-y-4">
+        <TabsList className="rounded-full bg-muted/70 p-1">
+          <TabsTrigger value="chapters" className="rounded-full px-4">
+            Capítulos
+          </TabsTrigger>
+          <TabsTrigger value="events" className="rounded-full px-4">
+            Histórico
+          </TabsTrigger>
+        </TabsList>
 
-      {activeTab === 'events' && (
-        <div className="space-y-2">
-          {!events?.length ? (
-            <p className="text-center text-parchment-muted text-sm py-8 font-body">Nenhum evento ainda.</p>
-          ) : (
-            events.map((ev) => (
-              <div key={ev.eventId} className="card px-4 py-3 flex justify-between items-center">
-                <span className="text-xs text-amber font-mono bg-amber-muted/30 px-2 py-0.5 rounded">
-                  {ev.type}
-                </span>
-                <span className="text-xs text-parchment-muted font-body">{formatDate(ev.createdAt)}</span>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+        <TabsContent value="chapters">
+          <Card className="surface-panel py-0">
+            <CardContent className="divide-y divide-border/70 px-0">
+              {!chapters?.items.length ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">Nenhum capítulo coletado ainda.</div>
+              ) : (
+                chapters.items.map((chapter) => (
+                  <a
+                    key={chapter.chapterId}
+                    href={chapter.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-muted/60 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 inline-flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                        {chapter.chapterNumber}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium leading-6">
+                          {chapter.title || `Capítulo ${chapter.chapterNumber}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {chapter.chapterNumber <= (novel.lastReadChapterNumber ?? 0) ? 'Lido' : 'Pendente'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{formatDateTime(chapter.publishedAt)}</span>
+                  </a>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="events">
+          <Card className="surface-panel py-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="size-5 text-primary" />
+                Histórico da novel
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!events?.length ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">Nenhum evento registrado ainda.</div>
+              ) : (
+                events.map((event) => (
+                  <div key={event.eventId} className="rounded-2xl border border-border/70 bg-background/60 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <Badge variant="secondary" className="rounded-full">
+                        {event.type}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{formatDateTime(event.createdAt)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

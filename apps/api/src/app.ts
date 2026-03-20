@@ -7,6 +7,7 @@ import { sourcesRoutes } from './modules/sources/sources.routes.js';
 import { chaptersRoutes } from './modules/chapters/chapters.routes.js';
 import { notificationsRoutes } from './modules/notifications/notifications.routes.js';
 import { adminRoutes } from './modules/admin/admin.routes.js';
+import { assetsRoutes } from './modules/assets/assets.routes.js';
 import { config } from './config.js';
 
 export function buildApp() {
@@ -26,6 +27,7 @@ export function buildApp() {
   fastify.register(chaptersRoutes, apiPrefix);
   fastify.register(notificationsRoutes, apiPrefix);
   fastify.register(adminRoutes, apiPrefix);
+  fastify.register(assetsRoutes, apiPrefix);
 
   fastify.get('/health', async () => ({ status: 'ok' }));
 

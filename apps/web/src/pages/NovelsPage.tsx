@@ -1,7 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { BookMarked, Plus } from 'lucide-react'
 import { novelsApi } from '@/api/novels'
+import { resolveCoverImageUrl } from '@/lib/assets'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { NovelListItem } from '@novel-hub/contracts'
 
 function progressPercent(novel: NovelListItem) {
@@ -10,12 +17,12 @@ function progressPercent(novel: NovelListItem) {
   return Math.min(100, Math.round((current / novel.lastChapterNumber) * 100))
 }
 
-const STATUS_MAP: Record<NovelListItem['status'], { label: string; cls: string }> = {
-  ONGOING: { label: 'Em andamento', cls: 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60' },
-  COMPLETED: { label: 'Completo', cls: 'bg-sky-950/60 text-sky-400 border-sky-900/60' },
-  HIATUS: { label: 'Hiato', cls: 'bg-amber-950/60 text-amber-400 border-amber-900/60' },
-  DROPPED: { label: 'Dropada', cls: 'bg-red-950/60 text-red-400 border-red-900/60' },
-  UNKNOWN: { label: 'Indefinido', cls: 'bg-zinc-900/60 text-zinc-300 border-zinc-700/60' },
+const STATUS_MAP: Record<NovelListItem['status'], { label: string; className: string }> = {
+  ONGOING: { label: 'Em andamento', className: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300' },
+  COMPLETED: { label: 'Completa', className: 'bg-sky-500/12 text-sky-700 dark:text-sky-300' },
+  HIATUS: { label: 'Hiato', className: 'bg-amber-500/12 text-amber-700 dark:text-amber-300' },
+  DROPPED: { label: 'Dropada', className: 'bg-rose-500/12 text-rose-700 dark:text-rose-300' },
+  UNKNOWN: { label: 'Indefinida', className: 'bg-muted text-muted-foreground' },
 }
 
 export function NovelsPage() {
@@ -49,153 +56,150 @@ export function NovelsPage() {
   }
 
   return (
-    <div className="animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-8">
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl text-parchment font-light">Minhas Novels</h1>
-          {novels?.length != null && (
-            <p className="text-xs text-parchment-muted mt-1 font-body">
-              {novels.length} {novels.length === 1 ? 'novel' : 'novels'} na sua biblioteca
-            </p>
-          )}
+          <h1 className="text-4xl sm:text-5xl">Minhas Novels</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {novels?.length ?? 0} {novels?.length === 1 ? 'novel' : 'novels'} na biblioteca
+          </p>
         </div>
-        <button
-          onClick={() => { setShowForm((v) => !v); setFormError('') }}
-          className={`text-sm font-body font-medium px-4 py-2 rounded-lg border transition-all duration-150 ${
-            showForm
-              ? 'border-ink-4 text-parchment-muted hover:text-parchment'
-              : 'bg-amber text-ink border-amber hover:bg-amber-light'
-          }`}
-        >
-          {showForm ? 'Cancelar' : '+ Adicionar'}
-        </button>
-      </div>
+        <div className="flex flex-wrap gap-3">
+          <Button size="lg" className="rounded-full px-5" onClick={() => { setShowForm((v) => !v); setFormError('') }}>
+            <Plus className="size-4" />
+            {showForm ? 'Cancelar' : 'Adicionar'}
+          </Button>
+          {novels?.length ? (
+            <Badge variant="secondary" className="rounded-full px-3 py-1 text-sm">
+              {Math.round(novels.reduce((acc, novel) => acc + progressPercent(novel), 0) / novels.length)}% lido
+            </Badge>
+          ) : null}
+        </div>
+      </section>
 
-      {/* Add form */}
       {showForm && (
-        <div className="card p-5 mb-7 animate-fade-up shadow-lg shadow-black/30">
-          <h2 className="font-display text-base text-parchment font-light mb-4">Nova novel</h2>
+        <Card className="surface-panel py-0">
+          <CardHeader className="pb-0">
+            <CardTitle>Adicionar novel</CardTitle>
+            <CardDescription>URL da fonte e nome de exibição.</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {formError && (
+              <div className="mb-4 rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {formError}
+              </div>
+            )}
 
-          {formError && (
-            <div className="bg-red-950/50 border border-red-900/60 text-red-300 text-sm rounded-lg px-4 py-2.5 mb-4 font-body">
-              {formError}
-            </div>
-          )}
-
-          <form onSubmit={handleAdd} className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-parchment-muted mb-2 font-body tracking-wide uppercase">
-                URL da fonte
-              </label>
-              <input
+            <form onSubmit={handleAdd} className="grid gap-4 lg:grid-cols-[1.5fr_1fr_auto]">
+              <Input
                 type="url"
                 required
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
-                className="input-field"
-                placeholder="https://novelupdates.com/..."
+                placeholder="https://www.webnovel.com/book/..."
+                className="h-11 rounded-xl bg-background/70"
               />
-            </div>
-            <div>
-              <label className="block text-xs text-parchment-muted mb-2 font-body tracking-wide uppercase">
-                Título
-              </label>
-              <input
+              <Input
                 type="text"
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="input-field"
                 placeholder="Nome da novel"
+                className="h-11 rounded-xl bg-background/70"
               />
-            </div>
-            <div className="sm:col-span-2 flex justify-end">
-              <button
-                type="submit"
-                disabled={addMutation.isPending}
-                className="bg-amber hover:bg-amber-light text-ink font-semibold text-sm px-6 py-2.5 rounded-lg transition-all duration-150 disabled:opacity-40 font-body"
-              >
-                {addMutation.isPending ? 'Adicionando...' : 'Adicionar novel'}
-              </button>
-            </div>
-          </form>
-        </div>
+              <Button type="submit" disabled={addMutation.isPending} className="h-11 rounded-xl px-5">
+                {addMutation.isPending ? 'Adicionando...' : 'Salvar'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
-      {/* List */}
       {isLoading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card p-4 animate-pulse h-28">
-              <div className="flex gap-3">
-                <div className="w-12 h-16 bg-ink-3 rounded-md" />
-                <div className="flex-1 space-y-2 pt-1">
-                  <div className="h-3 bg-ink-3 rounded w-3/4" />
-                  <div className="h-2 bg-ink-3 rounded w-1/3" />
-                  <div className="h-1.5 bg-ink-3 rounded w-full mt-4" />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index} className="surface-panel py-0">
+              <CardContent className="flex gap-4 py-6">
+                <Skeleton className="h-28 w-20 rounded-2xl" />
+                <div className="flex-1 space-y-3">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-2 w-full rounded-full" />
+                  <Skeleton className="h-4 w-1/2" />
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : !novels?.length ? (
-        <div className="text-center py-24">
-          <div className="font-display text-6xl mb-5 opacity-30">📖</div>
-          <p className="font-display text-xl text-parchment-dim font-light">Biblioteca vazia</p>
-          <p className="text-parchment-muted text-sm mt-2 font-body">
-            Adicione uma novel para começar a acompanhar
-          </p>
-        </div>
+        <Card className="hero-panel py-0">
+          <CardContent className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="mb-5 flex size-16 items-center justify-center rounded-3xl bg-primary/12 text-primary">
+              <BookMarked className="size-8" />
+            </div>
+            <h2 className="text-3xl">Biblioteca vazia</h2>
+            <Button className="mt-6 rounded-full px-5" onClick={() => setShowForm(true)}>
+              <Plus className="size-4" />
+              Adicionar primeira novel
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {novels.map((novel, i) => {
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {novels.map((novel) => {
             const pct = progressPercent(novel)
-            const st = STATUS_MAP[novel.status]
+            const status = STATUS_MAP[novel.status]
+            const coverImageUrl = resolveCoverImageUrl(novel.coverUrl)
+
             return (
-              <Link
-                key={novel.novelId}
-                to={`/novels/${novel.novelId}`}
-                className="card p-4 hover:border-amber-dim/60 transition-all duration-200 hover:shadow-lg hover:shadow-black/40 group animate-fade-up"
-                style={{ animationDelay: `${i * 0.05}s`, opacity: 0 }}
-              >
-                <div className="flex items-start gap-3">
-                  {novel.coverUrl ? (
-                    <img
-                      src={novel.coverUrl}
-                      alt={novel.title}
-                      className="w-12 h-[68px] object-cover rounded-md flex-shrink-0 border border-ink-4"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                    />
-                  ) : (
-                    <div className="w-12 h-[68px] bg-ink-3 rounded-md flex-shrink-0 flex items-center justify-center text-xl border border-ink-4">
-                      📕
-                    </div>
-                  )}
+              <Link key={novel.novelId} to={`/novels/${novel.novelId}`} className="group">
+                <Card className="surface-panel h-full py-0 transition-transform duration-200 hover:-translate-y-1">
+                  <CardContent className="flex h-full flex-col gap-5 py-5">
+                    <div className="flex gap-4">
+                      {coverImageUrl ? (
+                        <img
+                          src={coverImageUrl}
+                          alt={novel.title}
+                          className="h-32 w-24 rounded-2xl object-cover ring-1 ring-border"
+                          onError={(e) => {
+                            ;(e.target as HTMLImageElement).style.display = 'none'
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-32 w-24 items-center justify-center rounded-2xl bg-muted text-2xl">
+                          📚
+                        </div>
+                      )}
 
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-sm text-parchment truncate group-hover:text-amber-light transition-colors leading-snug">
-                      {novel.title}
-                    </p>
-
-                    <span className={`badge mt-1.5 inline-block ${st.cls}`}>
-                      {st.label}
-                    </span>
-
-                    <div className="mt-3">
-                      <div className="flex justify-between text-[10px] text-parchment-muted mb-1 font-body">
-                        <span>Cap. {novel.lastReadChapterNumber ?? 0}/{novel.lastChapterNumber ?? 0}</span>
-                        <span className="text-amber-light">{pct}%</span>
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className="line-clamp-2 text-xl leading-snug transition-colors group-hover:text-primary">
+                            {novel.title}
+                          </h3>
+                        </div>
+                        <Badge className={`mt-3 w-fit rounded-full border-0 ${status.className}`}>
+                          {status.label}
+                        </Badge>
+                        <p className="mt-auto pt-4 text-sm text-muted-foreground">
+                          Capítulo {novel.lastReadChapterNumber ?? 0} de {novel.lastChapterNumber ?? 0}
+                        </p>
                       </div>
-                      <div className="h-1 bg-ink-4 rounded-full overflow-hidden">
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Progresso</span>
+                        <span className="font-semibold text-foreground">{pct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted">
                         <div
-                          className="h-full bg-amber rounded-full transition-all duration-500"
+                          className="h-2 rounded-full bg-gradient-to-r from-primary to-orange-300 dark:to-amber-200"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </Link>
             )
           })}

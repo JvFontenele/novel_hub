@@ -1,7 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
 import { authApi } from '@/api/auth'
 import { useAuth } from '@/context/AuthContext'
+import { AuthShell } from '@/components/AuthShell'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 function getErrorMessage(err: unknown): string {
   const status = (err as { response?: { status?: number } })?.response?.status
@@ -39,95 +44,70 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-ink flex items-center justify-center px-4 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-[0.03]"
-        style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #c9943a 1px, transparent 0)', backgroundSize: '32px 32px' }} />
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-amber/5 blur-[120px] pointer-events-none" />
-
-      <div className="w-full max-w-sm relative z-10">
-        <div className="text-center mb-10 animate-fade-up">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-ink-2 border border-ink-4 mb-5 shadow-lg shadow-black/50">
-            <span className="text-2xl">📚</span>
-          </div>
-          <h1 className="font-display text-3xl text-parchment font-light tracking-tight">
-            Novel Hub
-          </h1>
-          <p className="text-parchment-muted text-sm mt-1.5 font-body">
-            Crie sua conta gratuitamente
-          </p>
-        </div>
-
-        <div className="card p-7 shadow-2xl shadow-black/60 animate-fade-up animate-delay-1">
-          <h2 className="font-display text-xl text-parchment font-light mb-6">Criar conta</h2>
-
+    <AuthShell title="Criar conta" subtitle="Comece a montar sua biblioteca.">
+      <Card className="border-0 bg-transparent py-0 shadow-none ring-0">
+        <CardContent className="px-0">
           {error && (
-            <div className="bg-red-950/50 border border-red-900/60 text-red-300 text-sm rounded-lg px-4 py-3 mb-5 font-body">
+            <div className="mb-5 rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs text-parchment-muted mb-2 font-body tracking-wide uppercase">
-                Nome
-              </label>
-              <input
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nome</label>
+              <Input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="input-field"
                 placeholder="Seu nome"
                 autoComplete="name"
+                className="h-11 rounded-xl bg-background/80"
               />
             </div>
 
-            <div>
-              <label className="block text-xs text-parchment-muted mb-2 font-body tracking-wide uppercase">
-                Email
-              </label>
-              <input
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <Input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input-field"
                 placeholder="seu@email.com"
                 autoComplete="email"
+                className="h-11 rounded-xl bg-background/80"
               />
             </div>
 
-            <div>
-              <label className="block text-xs text-parchment-muted mb-2 font-body tracking-wide uppercase">
-                Senha
-              </label>
-              <input
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Senha</label>
+              <Input
                 type="password"
                 required
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input-field"
                 placeholder="Mínimo 8 caracteres"
                 autoComplete="new-password"
+                className="h-11 rounded-xl bg-background/80"
               />
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary mt-2">
+            <Button type="submit" disabled={loading} size="lg" className="h-11 w-full rounded-xl">
               {loading ? 'Criando conta...' : 'Criar conta'}
-            </button>
+              {!loading && <ArrowRight className="size-4" />}
+            </Button>
           </form>
 
-          <div className="divider mt-6 mb-5" />
-
-          <p className="text-center text-sm text-parchment-muted font-body">
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             Já tem conta?{' '}
-            <Link to="/login" className="text-amber-light hover:text-amber transition-colors">
+            <Link to="/login" className="font-medium text-primary hover:underline">
               Entrar
             </Link>
           </p>
-        </div>
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </AuthShell>
   )
 }
