@@ -9,27 +9,39 @@ import { notificationsRoutes } from './modules/notifications/notifications.route
 import { adminRoutes } from './modules/admin/admin.routes.js';
 import { assetsRoutes } from './modules/assets/assets.routes.js';
 import { config } from './config.js';
+import { registerSwagger } from './openapi/swagger.js';
+import { healthResponseSchema } from './openapi/schemas.js';
 
-export function buildApp() {
+export async function buildApp() {
   const fastify = Fastify({
     logger: {
       level: config.NODE_ENV === 'production' ? 'info' : 'debug',
     },
   });
 
-  fastify.register(sensible);
-  fastify.register(authPlugin);
+  await fastify.register(sensible);
+  await fastify.register(authPlugin);
+  await registerSwagger(fastify);
 
   const apiPrefix = { prefix: '/api/v1' };
-  fastify.register(authRoutes, apiPrefix);
-  fastify.register(novelsRoutes, apiPrefix);
-  fastify.register(sourcesRoutes, apiPrefix);
-  fastify.register(chaptersRoutes, apiPrefix);
-  fastify.register(notificationsRoutes, apiPrefix);
-  fastify.register(adminRoutes, apiPrefix);
-  fastify.register(assetsRoutes, apiPrefix);
+  await fastify.register(authRoutes, apiPrefix);
+  await fastify.register(novelsRoutes, apiPrefix);
+  await fastify.register(sourcesRoutes, apiPrefix);
+  await fastify.register(chaptersRoutes, apiPrefix);
+  await fastify.register(notificationsRoutes, apiPrefix);
+  await fastify.register(adminRoutes, apiPrefix);
+  await fastify.register(assetsRoutes, apiPrefix);
 
-  fastify.get('/health', async () => ({ status: 'ok' }));
+  fastify.get('/health', {
+    schema: {
+      tags: ['System'],
+      summary: 'Health check',
+      description: 'Returns the API liveness status.',
+      response: {
+        200: healthResponseSchema,
+      },
+    },
+  }, async () => ({ status: 'ok' }));
 
   return fastify;
 }

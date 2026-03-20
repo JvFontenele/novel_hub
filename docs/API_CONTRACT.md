@@ -1,143 +1,60 @@
-# Novel Hub - API Contract (v0)
+# Novel Hub - API Contract
 
-Base URL: `/api/v1`
-Formato: JSON
-Auth: Bearer JWT (exceto login/register)
+Base URL versionada: `/api/v1`  
+Swagger UI: `/api/docs`  
+OpenAPI JSON: `/api/docs/json`
 
-## 1. Auth
+## Fonte de Verdade
 
-### POST `/auth/register`
-Request:
-```json
-{
-  "name": "Joao",
-  "email": "joao@example.com",
-  "password": "strong-password"
-}
-```
-Response `201`:
-```json
-{
-  "user": { "id": "usr_123", "name": "Joao", "email": "joao@example.com" },
-  "token": "jwt"
-}
-```
+O contrato operacional da API agora fica descrito no Swagger/OpenAPI exposto pela propria aplicacao.
+Este arquivo permanece como referencia curta para integracao e descoberta.
 
-### POST `/auth/login`
-Request:
-```json
-{
-  "email": "joao@example.com",
-  "password": "strong-password"
-}
-```
-Response `200`:
-```json
-{
-  "user": { "id": "usr_123", "name": "Joao", "email": "joao@example.com" },
-  "token": "jwt"
-}
-```
+## Autenticacao
 
-## 2. Novels e Sources
+- Formato: `Authorization: Bearer <jwt>`
+- Excecoes: `POST /api/v1/auth/register`, `POST /api/v1/auth/login` e `GET /api/v1/assets/cover`
+- Rotas de admin exigem JWT valido com papel `admin`
 
-### POST `/novels`
-Cadastra/assina uma novel a partir da URL.
-Request:
-```json
-{
-  "sourceUrl": "https://example.com/novel/abc",
-  "displayName": "My Favorite Novel"
-}
-```
-Response `201`:
-```json
-{
-  "novelId": "nov_123",
-  "sourceId": "src_123",
-  "status": "MONITORING"
-}
-```
+## Endpoints Cobertos
 
-### GET `/novels`
-Lista novels do usuario.
-Response `200`:
-```json
-{
-  "items": [
-    {
-      "novelId": "nov_123",
-      "title": "My Favorite Novel",
-      "coverUrl": "https://...",
-      "status": "ONGOING",
-      "lastChapterNumber": 120,
-      "lastReadChapterNumber": 110
-    }
-  ]
-}
-```
+### Sistema
 
-### GET `/novels/{novelId}`
-Detalhe da novel + fontes.
+- `GET /health`
 
-### PATCH `/novels/{novelId}/progress`
-Request:
-```json
-{
-  "lastReadChapterNumber": 111
-}
-```
-Response `200`:
-```json
-{
-  "novelId": "nov_123",
-  "lastReadChapterNumber": 111
-}
-```
+### Auth
 
-### PATCH `/sources/{sourceId}`
-Pausar/retomar monitoramento.
-Request:
-```json
-{
-  "monitoringEnabled": false
-}
-```
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
 
-## 3. Capitulos e Eventos
+### Novels
 
-### GET `/novels/{novelId}/chapters`
-Query params: `page`, `pageSize`.
+- `POST /api/v1/novels`
+- `GET /api/v1/novels`
+- `GET /api/v1/novels/:novelId`
+- `PATCH /api/v1/novels/:novelId/progress`
+- `GET /api/v1/novels/:novelId/events`
+- `GET /api/v1/novels/:novelId/chapters`
 
-### GET `/novels/{novelId}/events`
-Retorna eventos de mudanca para timeline da novel.
+### Sources
 
-## 4. Notificacoes
+- `PATCH /api/v1/sources/:sourceId`
+- `POST /api/v1/sources/:sourceId/collect`
 
-### GET `/notifications`
-Response `200`:
-```json
-{
-  "items": [
-    {
-      "id": "ntf_123",
-      "type": "NEW_CHAPTER",
-      "novelId": "nov_123",
-      "title": "Novo capitulo disponivel",
-      "read": false,
-      "createdAt": "2026-03-20T10:00:00Z"
-    }
-  ]
-}
-```
+### Notifications
 
-### PATCH `/notifications/{id}/read`
-Marca notificacao como lida.
+- `GET /api/v1/notifications`
+- `PATCH /api/v1/notifications/:id/read`
 
-## 5. Admin (MVP interno)
+### Admin
 
-### GET `/admin/collector-runs`
-Lista execucoes recentes com status/tempo.
+- `GET /api/v1/admin/collector-runs`
+- `GET /api/v1/admin/source-failures`
 
-### GET `/admin/source-failures`
-Lista fontes com alta taxa de erro.
+### Assets
+
+- `GET /api/v1/assets/cover`
+
+## Observacoes
+
+- O `nginx` de producao ja encaminha `/api/*` para o servico da API, entao o Swagger continua acessivel sem ajuste extra de proxy.
+- A documentacao descreve os contratos atuais da API; ela nao altera o comportamento das rotas.
