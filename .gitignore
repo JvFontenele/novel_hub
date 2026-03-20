@@ -42,3 +42,4 @@ redis-data/
 *.local
 
 .claude/
+.agents/
