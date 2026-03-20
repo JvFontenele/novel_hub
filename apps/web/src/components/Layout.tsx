@@ -2,9 +2,11 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { notificationsApi } from '@/api/notifications'
+import { useTheme } from '@/context/ThemeContext'
 
 export function Layout() {
   const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
   const { data: notifications } = useQuery({
@@ -25,16 +27,16 @@ export function Layout() {
       to={to}
       end={end}
       className={({ isActive }) =>
-        `relative px-3.5 py-1.5 rounded-lg text-sm font-body transition-all duration-150 ${
+        `nav-pill ${
           isActive
-            ? 'bg-ink-3 text-parchment'
-            : 'text-parchment-muted hover:text-parchment hover:bg-ink-2'
+            ? 'bg-amber/12 text-amber-light border border-amber/20'
+            : 'text-parchment-muted hover:text-parchment hover:bg-ink-2/80'
         }`
       }
     >
       {label}
       {badge != null && badge > 0 && (
-        <span className="absolute -top-1 -right-1 bg-amber text-ink text-[10px] font-semibold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+        <span className="absolute -top-1 -right-1 bg-amber text-white text-[10px] font-semibold rounded-md w-4 h-4 flex items-center justify-center leading-none">
           {badge > 9 ? '9+' : badge}
         </span>
       )}
@@ -42,14 +44,14 @@ export function Layout() {
   )
 
   return (
-    <div className="min-h-screen bg-ink text-parchment">
-      <header className="bg-ink-1 border-b border-ink-3 sticky top-0 z-50">
+    <div className="app-shell">
+      <header className="topbar">
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-7 h-7 bg-ink-3 rounded-lg flex items-center justify-center text-base border border-ink-4">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base border border-ink-3 bg-ink-2">
               📚
             </div>
-            <span className="font-display text-lg text-parchment font-light tracking-tight hidden sm:block">
+            <span className="font-display text-[1.55rem] text-parchment font-semibold tracking-tight hidden sm:block">
               Novel Hub
             </span>
           </Link>
@@ -61,10 +63,14 @@ export function Layout() {
           </nav>
 
           <div className="flex items-center gap-3 flex-shrink-0">
+            <button onClick={toggleTheme} className="theme-toggle" type="button">
+              <span>{theme === 'dark' ? 'Claro' : 'Escuro'}</span>
+              <span aria-hidden="true">{theme === 'dark' ? '☼' : '☾'}</span>
+            </button>
             <span className="text-xs text-parchment-muted font-body hidden md:block">{user?.name}</span>
             <button
               onClick={handleLogout}
-              className="text-xs text-parchment-muted hover:text-parchment transition-colors font-body border border-ink-3 hover:border-ink-4 px-2.5 py-1 rounded-md"
+              className="text-xs text-parchment-muted hover:text-parchment transition-colors font-body border border-ink-3 hover:border-amber/35 px-3 py-1.5 rounded-lg"
             >
               Sair
             </button>

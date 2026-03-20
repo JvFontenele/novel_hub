@@ -8,6 +8,7 @@ import { NovelsPage } from '@/pages/NovelsPage'
 import { NovelDetailPage } from '@/pages/NovelDetailPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { AdminPage } from '@/pages/AdminPage'
+import { ThemeProvider } from '@/context/ThemeContext'
 import type { ReactNode } from 'react'
 
 const queryClient = new QueryClient({
@@ -32,41 +33,43 @@ function GuestOnly({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route
-              path="/login"
-              element={
-                <GuestOnly>
-                  <LoginPage />
-                </GuestOnly>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <GuestOnly>
-                  <RegisterPage />
-                </GuestOnly>
-              }
-            />
-            <Route
-              element={
-                <RequireAuth>
-                  <Layout />
-                </RequireAuth>
-              }
-            >
-              <Route index element={<NovelsPage />} />
-              <Route path="novels/:novelId" element={<NovelDetailPage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="admin" element={<AdminPage />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route
+                path="/login"
+                element={
+                  <GuestOnly>
+                    <LoginPage />
+                  </GuestOnly>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <GuestOnly>
+                    <RegisterPage />
+                  </GuestOnly>
+                }
+              />
+              <Route
+                element={
+                  <RequireAuth>
+                    <Layout />
+                  </RequireAuth>
+                }
+              >
+                <Route index element={<NovelsPage />} />
+                <Route path="novels/:novelId" element={<NovelDetailPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="admin" element={<AdminPage />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

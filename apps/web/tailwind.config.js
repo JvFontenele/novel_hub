@@ -1,3 +1,5 @@
+const colorVar = (name) => `rgb(var(${name}) / <alpha-value>)`
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -5,28 +7,28 @@ export default {
     extend: {
       colors: {
         ink: {
-          DEFAULT: '#0c0a07',
-          1: '#13100b',
-          2: '#1a1610',
-          3: '#242016',
-          4: '#2e2a1e',
-          5: '#3d3828',
+          DEFAULT: colorVar('--color-ink'),
+          1: colorVar('--color-ink-1'),
+          2: colorVar('--color-ink-2'),
+          3: colorVar('--color-ink-3'),
+          4: colorVar('--color-ink-4'),
+          5: colorVar('--color-ink-5'),
         },
         amber: {
-          DEFAULT: '#c9943a',
-          light: '#e8b96a',
-          dim: '#8a6428',
-          muted: '#5c4219',
+          DEFAULT: colorVar('--color-accent'),
+          light: colorVar('--color-accent-light'),
+          dim: colorVar('--color-accent-dim'),
+          muted: colorVar('--color-accent-muted'),
         },
         parchment: {
-          DEFAULT: '#e8dcc8',
-          dim: '#a8997e',
-          muted: '#6b5e47',
+          DEFAULT: colorVar('--color-parchment'),
+          dim: colorVar('--color-parchment-dim'),
+          muted: colorVar('--color-parchment-muted'),
         },
       },
       fontFamily: {
-        display: ['Fraunces', 'Georgia', 'serif'],
-        body: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        display: ['Poppins', '"Segoe UI"', 'sans-serif'],
+        body: ['Inter', '"Segoe UI"', 'sans-serif'],
       },
       animation: {
         'fade-up': 'fadeUp 0.5s ease forwards',
