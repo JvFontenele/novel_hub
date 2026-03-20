@@ -12,12 +12,19 @@ const collectorQueue = new Queue(QUEUE_NAMES.COLLECTOR, {
   },
 });
 
-export async function enqueueCollect(sourceId: string, delayMs = 0) {
+interface EnqueueCollectOptions {
+  delayMs?: number;
+  jobId?: string;
+}
+
+export async function enqueueCollect(sourceId: string, options: EnqueueCollectOptions = {}) {
+  const { delayMs = 0, jobId = sourceId } = options;
+
   return collectorQueue.add(
     JOB_NAMES.COLLECT_SOURCE,
     { sourceId } satisfies CollectSourceJobData,
     {
-      jobId: sourceId,
+      jobId,
       delay: delayMs,
     },
   );
