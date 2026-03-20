@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #0c0a07;
+    color: #e8dcc8;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #13100b;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #3d3828;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #c9943a;
+  }
+
+  ::selection {
+    background: #8a6428;
+    color: #e8dcc8;
+  }
+}
+
+@layer components {
+  .input-field {
+    @apply w-full bg-ink-2 border border-ink-4 rounded-lg px-4 py-3 text-parchment text-sm
+           placeholder-parchment-muted
+           focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber/30
+           transition-all duration-200 font-body;
+  }
+
+  .btn-primary {
+    @apply w-full bg-amber hover:bg-amber-light text-ink font-semibold py-3 rounded-lg
+           transition-all duration-200 text-sm tracking-wide font-body
+           disabled:opacity-40 disabled:cursor-not-allowed
+           active:scale-[0.99];
+  }
+
+  .card {
+    @apply bg-ink-1 border border-ink-3 rounded-xl;
+  }
+
+  .divider {
+    @apply border-t border-ink-3;
+  }
+
+  .badge {
+    @apply text-xs px-2 py-0.5 rounded-full border font-body;
+  }
+
+  .animate-delay-1 { animation-delay: 0.1s; animation-fill-mode: both; }
+  .animate-delay-2 { animation-delay: 0.2s; animation-fill-mode: both; }
+  .animate-delay-3 { animation-delay: 0.3s; animation-fill-mode: both; }
+  .animate-delay-4 { animation-delay: 0.4s; animation-fill-mode: both; }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "novel-hub",
+  "private": true,
+  "scripts": {
+    "dev:api": "pnpm --filter @novel-hub/api dev",
+    "dev:worker": "pnpm --filter @novel-hub/worker dev",
+    "dev:web": "pnpm --filter @novel-hub/web dev",
+    "build": "pnpm -r build",
+    "migrate": "pnpm --filter @novel-hub/api migrate",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  }
+}
