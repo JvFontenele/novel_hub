@@ -90,7 +90,7 @@ export function NovelDetailPage() {
       </Link>
 
       {/* Hero */}
-      <div className="card p-6 mb-5 shadow-lg shadow-black/30">
+      <div className="card p-6 mb-5 shadow-none">
         <div className="flex gap-5">
           {coverImageUrl ? (
             <img
@@ -176,7 +176,7 @@ export function NovelDetailPage() {
                     onClick={() => toggleSourceMutation.mutate({ sourceId: src.sourceId, enabled: !src.monitoringEnabled })}
                     className={`badge flex-shrink-0 transition-colors ${
                       src.monitoringEnabled
-                        ? 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60 hover:bg-red-950/60 hover:text-red-400 hover:border-red-900/60'
+                        ? 'status-ongoing hover:bg-red-950/60 hover:text-red-400 hover:border-red-900/60'
                         : 'bg-red-950/60 text-red-400 border-red-900/60 hover:bg-emerald-950/60 hover:text-emerald-400 hover:border-emerald-900/60'
                     }`}
                   >
@@ -259,7 +259,7 @@ export function NovelDetailPage() {
           ) : (
             events.map((ev) => (
               <div key={ev.eventId} className="card px-4 py-3 flex justify-between items-center">
-                <span className="text-xs text-amber font-mono bg-amber-muted/30 px-2 py-0.5 rounded">
+                <span className="text-xs text-amber font-mono bg-amber-muted/30 px-2 py-0.5 rounded-md">
                   {ev.type}
                 </span>
                 <span className="text-xs text-parchment-muted font-body">{formatDate(ev.createdAt)}</span>

@@ -11,7 +11,7 @@ function progressPercent(novel: NovelListItem) {
 }
 
 const STATUS_MAP: Record<NovelListItem['status'], { label: string; cls: string }> = {
-  ONGOING: { label: 'Em andamento', cls: 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60' },
+  ONGOING: { label: 'Em andamento', cls: 'status-ongoing' },
   COMPLETED: { label: 'Completo', cls: 'bg-sky-950/60 text-sky-400 border-sky-900/60' },
   HIATUS: { label: 'Hiato', cls: 'bg-amber-950/60 text-amber-400 border-amber-900/60' },
   DROPPED: { label: 'Dropada', cls: 'bg-red-950/60 text-red-400 border-red-900/60' },
@@ -74,7 +74,7 @@ export function NovelsPage() {
 
       {/* Add form */}
       {showForm && (
-        <div className="card p-5 mb-7 animate-fade-up shadow-lg shadow-black/30">
+        <div className="card p-5 mb-7 animate-fade-up">
           <h2 className="font-display text-base text-parchment font-light mb-4">Nova novel</h2>
 
           {formError && (
@@ -157,7 +157,7 @@ export function NovelsPage() {
               <Link
                 key={novel.novelId}
                 to={`/novels/${novel.novelId}`}
-                className="card p-4 hover:border-amber-dim/60 transition-all duration-200 hover:shadow-lg hover:shadow-black/40 group animate-fade-up"
+                className="card p-4 hover:border-amber-dim/60 transition-all duration-200 group animate-fade-up"
                 style={{ animationDelay: `${i * 0.05}s`, opacity: 0 }}
               >
                 <div className="flex items-start gap-3">

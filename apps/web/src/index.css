@@ -145,6 +145,7 @@
     @apply rounded-xl;
     background: rgb(var(--color-ink-1));
     border: 1px solid rgb(var(--color-ink-3) / 0.95);
+    box-shadow: 0 2px 8px rgb(15 23 42 / 0.04);
   }
 
   .divider {
@@ -153,6 +154,16 @@
 
   .badge {
     @apply text-xs px-2.5 py-1 rounded-full border font-body;
+  }
+
+  .status-ongoing {
+    @apply bg-emerald-950/60 text-emerald-400 border-emerald-900/60;
+  }
+
+  .theme-light .status-ongoing {
+    background: transparent;
+    color: rgb(var(--color-parchment-dim));
+    border-color: rgb(var(--color-ink-4));
   }
 
   .nav-pill {
