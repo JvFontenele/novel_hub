@@ -11,7 +11,9 @@ export async function triggerCollection(sourceId: string, userId: string) {
     return null;
   }
 
-  await enqueueCollect(sourceId);
+  await enqueueCollect(sourceId, {
+    jobId: `${sourceId}:manual:${Date.now()}`,
+  });
 
   return {
     queued: true as const,

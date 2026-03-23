@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { coverQuerySchema, errorResponseSchema } from '../../openapi/schemas.js';
 
 const allowedHosts = new Set([
   'book-pic.webnovel.com',
@@ -23,6 +24,22 @@ function isAllowedCoverUrl(url: string): boolean {
 export async function assetsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: { url?: string } }>(
     '/assets/cover',
+    {
+      schema: {
+        tags: ['Assets'],
+        summary: 'Proxy an allowed cover image',
+        description: 'Fetches a remote cover image from an allowed WebNovel host and streams it back.',
+        querystring: coverQuerySchema,
+        response: {
+          200: {
+            type: 'string',
+            format: 'binary',
+          },
+          400: errorResponseSchema,
+          403: errorResponseSchema,
+        },
+      },
+    },
     async (request, reply) => {
       const query = proxyCoverSchema.safeParse(request.query);
       if (!query.success) {

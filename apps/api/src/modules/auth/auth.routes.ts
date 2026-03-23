@@ -1,9 +1,26 @@
 import type { FastifyInstance } from 'fastify';
 import { registerSchema, loginSchema } from './auth.schema.js';
 import * as authService from './auth.service.js';
+import {
+  authResponseSchema,
+  errorResponseSchema,
+  fromZod,
+} from '../../openapi/schemas.js';
 
 export async function authRoutes(fastify: FastifyInstance) {
-  fastify.post('/auth/register', async (request, reply) => {
+  fastify.post('/auth/register', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Register a new user',
+      description: 'Creates an account and returns a JWT for immediate authenticated use.',
+      body: fromZod(registerSchema),
+      response: {
+        201: authResponseSchema,
+        400: errorResponseSchema,
+        409: errorResponseSchema,
+      },
+    },
+  }, async (request, reply) => {
     const body = registerSchema.safeParse(request.body);
     if (!body.success) {
       return reply.code(400).send({ message: 'Validation error', errors: body.error.format() });
@@ -25,7 +42,19 @@ export async function authRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/auth/login', async (request, reply) => {
+  fastify.post('/auth/login', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Authenticate a user',
+      description: 'Validates email and password credentials and returns a JWT.',
+      body: fromZod(loginSchema),
+      response: {
+        200: authResponseSchema,
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+      },
+    },
+  }, async (request, reply) => {
     const body = loginSchema.safeParse(request.body);
     if (!body.success) {
       return reply.code(400).send({ message: 'Validation error', errors: body.error.format() });
