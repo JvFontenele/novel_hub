@@ -1,9 +1,10 @@
 import type { Connector } from './connector.interface.js';
 import { GenericConnector } from './implementations/generic.connector.js';
+import { NovelbinConnector } from './implementations/novelbin.connector.js';
 import { WebnovelConnector } from './implementations/webnovel.connector.js';
 
 const genericConnector = new GenericConnector();
-const connectors: Connector[] = [new WebnovelConnector(), genericConnector];
+const connectors: Connector[] = [new WebnovelConnector(), new NovelbinConnector(), genericConnector];
 
 export function listConnectors(): Connector[] {
   return [...connectors];

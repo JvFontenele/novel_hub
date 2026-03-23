@@ -15,7 +15,7 @@ function resolveExecutablePath(): string | null {
   return null;
 }
 
-async function launchBrowser() {
+export async function launchBrowser() {
   const candidates = [
     resolveExecutablePath() ?? undefined,
     undefined,
