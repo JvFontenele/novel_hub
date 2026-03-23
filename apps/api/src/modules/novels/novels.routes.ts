@@ -129,6 +129,39 @@ export async function novelsRoutes(fastify: FastifyInstance) {
     },
   );
 
+  fastify.delete<{ Params: { novelId: string } }>(
+    '/novels/:novelId',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['Novels'],
+        summary: 'Remove a tracked novel',
+        description: 'Removes the novel from the authenticated user library and deletes the novel record when no subscribers remain.',
+        security: bearerSecurity,
+        params: idParamsSchema('novelId', 'Novel identifier'),
+        response: {
+          200: {
+            type: 'object',
+            required: ['removed', 'novelId'],
+            properties: {
+              removed: { type: 'boolean', const: true },
+              novelId: { type: 'string', format: 'uuid' },
+            },
+          },
+          401: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const result = await novelsRepo.removeNovelForUser(request.user.sub, request.params.novelId);
+      if (!result) {
+        return reply.code(404).send({ message: 'Subscription not found' });
+      }
+      return reply.send(result);
+    },
+  );
+
   fastify.get<{ Params: { novelId: string } }>(
     '/novels/:novelId/events',
     {

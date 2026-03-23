@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCoverImageUrl, novelsApi } from '@/api/novels'
 
@@ -15,6 +15,7 @@ function formatDate(iso: string | null) {
 
 export function NovelDetailPage() {
   const { novelId } = useParams<{ novelId: string }>()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [progressInput, setProgressInput] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'chapters' | 'events'>('chapters')
@@ -59,6 +60,17 @@ export function NovelDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['events', novelId] })
       queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
       queryClient.invalidateQueries({ queryKey: ['novels'] })
+    },
+  })
+
+  const deleteNovelMutation = useMutation({
+    mutationFn: () => novelsApi.remove(novelId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['novels'] })
+      queryClient.removeQueries({ queryKey: ['novel', novelId] })
+      queryClient.removeQueries({ queryKey: ['chapters', novelId] })
+      queryClient.removeQueries({ queryKey: ['events', novelId] })
+      navigate('/')
     },
   })
 
@@ -143,6 +155,20 @@ export function NovelDetailPage() {
                 className="bg-amber hover:bg-amber-light text-ink text-xs font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-40 font-body"
               >
                 {progressMutation.isPending ? '...' : 'Salvar'}
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  if (!novelId || deleteNovelMutation.isPending) return
+                  if (!window.confirm(`Excluir "${novel.title}" da sua biblioteca?`)) return
+                  deleteNovelMutation.mutate()
+                }}
+                disabled={deleteNovelMutation.isPending}
+                className="rounded-lg border border-red-500/30 bg-red-500/8 px-3 py-2 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/14 disabled:opacity-40 font-body"
+              >
+                {deleteNovelMutation.isPending ? 'Excluindo...' : 'Excluir novel'}
               </button>
             </div>
           </div>

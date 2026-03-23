@@ -61,6 +61,11 @@ export interface UpdateProgressResponse {
   lastReadChapterNumber: number | null;
 }
 
+export interface DeleteNovelResponse {
+  removed: true;
+  novelId: string;
+}
+
 export interface ToggleSourceMonitoringInput {
   monitoringEnabled: boolean;
 }

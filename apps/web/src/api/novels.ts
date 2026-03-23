@@ -3,6 +3,7 @@ import type {
   ChapterListItem,
   CreateNovelInput,
   CreateNovelResponse,
+  DeleteNovelResponse,
   NovelDetail,
   NovelEventView,
   NovelListItem,
@@ -29,6 +30,9 @@ export const novelsApi = {
 
   updateProgress: (novelId: string, lastReadChapterNumber: number): Promise<UpdateProgressResponse> =>
     api.patch<UpdateProgressResponse>(`/novels/${novelId}/progress`, { lastReadChapterNumber }).then((r) => r.data),
+
+  remove: (novelId: string): Promise<DeleteNovelResponse> =>
+    api.delete<DeleteNovelResponse>(`/novels/${novelId}`).then((r) => r.data),
 
   chapters: (novelId: string, page = 1, pageSize = 20): Promise<PaginatedResponse<ChapterListItem>> =>
     api

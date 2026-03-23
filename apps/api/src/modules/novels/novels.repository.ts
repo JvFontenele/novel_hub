@@ -94,3 +94,35 @@ export async function listEventsByNovel(novelId: string, userId: string) {
     LIMIT 100
   `;
 }
+
+export async function removeNovelForUser(userId: string, novelId: string) {
+  const [subscription] = await sql`
+    WITH deleted_subscription AS (
+      DELETE FROM subscriptions
+      WHERE user_id = ${userId} AND novel_id = ${novelId}
+      RETURNING novel_id
+    ),
+    deleted_novel AS (
+      DELETE FROM novels
+      WHERE id = ${novelId}
+        AND EXISTS (SELECT 1 FROM deleted_subscription)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM subscriptions
+          WHERE novel_id = ${novelId}
+        )
+      RETURNING id
+    )
+    SELECT novel_id AS "novelId"
+    FROM deleted_subscription
+  `;
+
+  if (!subscription) {
+    return null;
+  }
+
+  return {
+    removed: true as const,
+    novelId,
+  };
+}
