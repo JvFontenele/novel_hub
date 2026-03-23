@@ -6,7 +6,20 @@ const allowedHosts = new Set([
   'book-pic.webnovel.com',
   'cc-cdnintserviceimg.webnovel.com',
   'webbanner.webnovel.com',
+  'images.novelbin.com',
 ]);
+
+function getCoverReferer(hostname: string): string {
+  if (hostname.endsWith('webnovel.com')) {
+    return 'https://www.webnovel.com/';
+  }
+
+  if (hostname === 'images.novelbin.com') {
+    return 'https://novelbin.com/';
+  }
+
+  return 'https://novelbin.com/';
+}
 
 const proxyCoverSchema = z.object({
   url: z.string().url(),
@@ -50,12 +63,13 @@ export async function assetsRoutes(fastify: FastifyInstance) {
       if (!isAllowedCoverUrl(url)) {
         return reply.code(403).send({ message: 'Cover host not allowed' });
       }
+      const parsedUrl = new URL(url);
 
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
           Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-          Referer: 'https://www.webnovel.com/',
+          Referer: getCoverReferer(parsedUrl.hostname),
         },
         signal: AbortSignal.timeout(20_000),
       });
