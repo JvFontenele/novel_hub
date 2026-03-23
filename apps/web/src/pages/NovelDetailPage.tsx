@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCoverImageUrl, novelsApi } from '@/api/novels'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 function formatDate(iso: string | null) {
   if (!iso) return 'sem data'
@@ -19,6 +20,7 @@ export function NovelDetailPage() {
   const queryClient = useQueryClient()
   const [progressInput, setProgressInput] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'chapters' | 'events'>('chapters')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const { data: novel, isLoading } = useQuery({
     queryKey: ['novel', novelId],
@@ -70,6 +72,7 @@ export function NovelDetailPage() {
       queryClient.removeQueries({ queryKey: ['novel', novelId] })
       queryClient.removeQueries({ queryKey: ['chapters', novelId] })
       queryClient.removeQueries({ queryKey: ['events', novelId] })
+      setDeleteDialogOpen(false)
       navigate('/')
     },
   })
@@ -94,6 +97,23 @@ export function NovelDetailPage() {
 
   return (
     <div className="animate-fade-in">
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Excluir novel"
+        description={
+          <>
+            Você vai remover <strong className="text-parchment">{novel.title}</strong> da sua biblioteca.
+            Essa ação não pode ser desfeita.
+          </>
+        }
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        confirmTone="danger"
+        isPending={deleteNovelMutation.isPending}
+        onCancel={() => setDeleteDialogOpen(false)}
+        onConfirm={() => deleteNovelMutation.mutate()}
+      />
+
       <Link
         to="/"
         className="inline-flex items-center gap-1.5 text-xs text-parchment-muted hover:text-parchment transition-colors mb-6 font-body"
@@ -118,10 +138,25 @@ export function NovelDetailPage() {
           )}
 
           <div className="flex-1 min-w-0">
-            <h1 className="font-display text-xl text-parchment font-light leading-snug">{novel.title}</h1>
-            <p className="text-xs text-parchment-muted mt-1 font-body">
-              {novel.lastChapterNumber} capítulos disponíveis
-            </p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h1 className="font-display text-xl text-parchment font-light leading-snug">{novel.title}</h1>
+                <p className="text-xs text-parchment-muted mt-1 font-body">
+                  {novel.lastChapterNumber} capítulos disponíveis
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (!novelId || deleteNovelMutation.isPending) return
+                  setDeleteDialogOpen(true)
+                }}
+                disabled={deleteNovelMutation.isPending}
+                className="rounded-lg border border-red-500/30 bg-red-500/8 px-3 py-2 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/14 disabled:opacity-40 font-body sm:flex-shrink-0"
+              >
+                {deleteNovelMutation.isPending ? 'Excluindo...' : 'Excluir novel'}
+              </button>
+            </div>
 
             <div className="mt-4 mb-1">
               <div className="flex justify-between text-xs font-body mb-1.5">
@@ -155,20 +190,6 @@ export function NovelDetailPage() {
                 className="bg-amber hover:bg-amber-light text-ink text-xs font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-40 font-body"
               >
                 {progressMutation.isPending ? '...' : 'Salvar'}
-              </button>
-            </div>
-
-            <div className="mt-4">
-              <button
-                onClick={() => {
-                  if (!novelId || deleteNovelMutation.isPending) return
-                  if (!window.confirm(`Excluir "${novel.title}" da sua biblioteca?`)) return
-                  deleteNovelMutation.mutate()
-                }}
-                disabled={deleteNovelMutation.isPending}
-                className="rounded-lg border border-red-500/30 bg-red-500/8 px-3 py-2 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/14 disabled:opacity-40 font-body"
-              >
-                {deleteNovelMutation.isPending ? 'Excluindo...' : 'Excluir novel'}
               </button>
             </div>
           </div>
