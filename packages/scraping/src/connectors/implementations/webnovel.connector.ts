@@ -1,6 +1,6 @@
 import { decodeHtml } from './generic.connector.js';
 import type { Connector, ParsedChapter, ParsedNovelData } from '../connector.interface.js';
-import { fetchHtmlWithBrowser } from '../../browser/fetch-html.js';
+import { fetchHtmlWithBrowser, launchBrowser } from '../../browser/fetch-html.js';
 
 const WEBNOVEL_HOSTS = ['webnovel.com', 'www.webnovel.com'];
 
@@ -190,6 +190,53 @@ export class WebnovelConnector implements Connector {
       status: parseStatus(html),
       chapters,
     };
+  }
+
+  async fetchChapterContent(url: string): Promise<string> {
+    const browser = await launchBrowser();
+
+    try {
+      const context = await browser.newContext({
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+        viewport: { width: 1440, height: 1600 },
+        locale: 'en-US',
+      });
+
+      try {
+        const page = await context.newPage();
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+        await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => undefined);
+        await page.waitForSelector('.chapter_content, .cha-content, .cha-words', { timeout: 20_000 });
+
+        const content = await page.evaluate(() => {
+          const paragraphNodes = Array.from(
+            document.querySelectorAll<HTMLElement>('.cha-content .cha-paragraph, .chapter_content .cha-paragraph, .cha-words .cha-paragraph'),
+          );
+
+          const cleanedParagraphs = paragraphNodes
+            .map((node) => {
+              const clone = node.cloneNode(true) as HTMLElement;
+              clone.querySelectorAll('i, .para-comment-num, .tag-num, .j_open_para_comment, .j_para_comment_count').forEach((el) => el.remove());
+              const text = clone.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+              return text;
+            })
+            .filter((text) => text.length > 0);
+
+          return cleanedParagraphs.join('\n\n').trim();
+        });
+
+        if (content.length < 100) {
+          throw new Error('Webnovel chapter content extraction yielded too little text.');
+        }
+
+        return content;
+      } finally {
+        await context.close();
+      }
+    } finally {
+      await browser.close();
+    }
   }
 
   private async fetchAccessibleHtml(url: string): Promise<string> {
