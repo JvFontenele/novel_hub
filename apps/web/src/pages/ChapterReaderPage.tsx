@@ -217,7 +217,7 @@ export function ChapterReaderPage() {
 
       {/* Chapter content */}
       <div
-        className="card reader-surface p-5 sm:p-8 mb-6 font-body text-parchment text-[17px] sm:text-[18px] leading-8 chapter-content overflow-x-auto"
+        className="card reader-surface p-5 sm:p-8 mb-6 font-body text-parchment text-[15px] sm:text-[18px] leading-7 sm:leading-8 chapter-content overflow-x-auto"
         dangerouslySetInnerHTML={{ __html: chapter.content }}
       />
 

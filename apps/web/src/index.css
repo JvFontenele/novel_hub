@@ -113,6 +113,10 @@
     border-bottom: 1px solid rgb(var(--color-ink-3) / 0.8);
   }
 
+  .topbar-static {
+    @apply static;
+  }
+
   .input-field {
     @apply w-full rounded-lg px-4 py-3 text-sm font-body;
     background: rgb(var(--color-ink-1));

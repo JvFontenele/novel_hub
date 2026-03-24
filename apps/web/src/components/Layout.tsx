@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { notificationsApi } from '@/api/notifications'
@@ -7,7 +7,9 @@ import { useTheme } from '@/context/ThemeContext'
 export function Layout() {
   const { user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
+  const location = useLocation()
   const navigate = useNavigate()
+  const isReaderRoute = /^\/novels\/[^/]+\/chapters\/[^/]+$/.test(location.pathname)
 
   const { data: notifications } = useQuery({
     queryKey: ['notifications'],
@@ -45,7 +47,7 @@ export function Layout() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
+      <header className={isReaderRoute ? 'topbar topbar-static' : 'topbar'}>
         <div className="max-w-5xl mx-auto px-4 sm:px-5 py-3 sm:h-14 sm:py-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center justify-between gap-3 sm:contents">
             <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
