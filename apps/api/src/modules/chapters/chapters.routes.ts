@@ -37,8 +37,8 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { page = 1, pageSize = 50 } = request.query;
-      const items = await listChaptersByNovel(request.params.novelId, page, pageSize);
-      return reply.send({ items });
+      const { items, total } = await listChaptersByNovel(request.params.novelId, page, pageSize);
+      return reply.send({ items, total, page, pageSize });
     },
   );
 

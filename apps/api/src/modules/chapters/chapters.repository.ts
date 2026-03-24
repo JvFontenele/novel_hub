@@ -2,7 +2,7 @@ import { sql } from '../../db/client.js';
 
 export async function listChaptersByNovel(novelId: string, page = 1, pageSize = 50) {
   const offset = (page - 1) * pageSize;
-  return sql`
+  const items = await sql`
     SELECT
       id AS "chapterId",
       chapter_number AS "chapterNumber",
@@ -16,6 +16,17 @@ export async function listChaptersByNovel(novelId: string, page = 1, pageSize = 
     ORDER BY chapter_number DESC
     LIMIT ${pageSize} OFFSET ${offset}
   `;
+
+  const [{ total }] = await sql<{ total: number }[]>`
+    SELECT COUNT(*)::int AS total
+    FROM chapters
+    WHERE novel_id = ${novelId}
+  `;
+
+  return {
+    items,
+    total,
+  };
 }
 
 export async function findChapterById(chapterId: string, novelId: string) {

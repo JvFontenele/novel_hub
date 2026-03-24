@@ -30,6 +30,15 @@ export function listResponseSchema(itemSchema: JsonSchema): JsonSchema {
         type: 'array',
         items: itemSchema,
       },
+      total: {
+        type: 'number',
+      },
+      page: {
+        type: 'number',
+      },
+      pageSize: {
+        type: 'number',
+      },
     },
     required: ['items'],
     additionalProperties: false,

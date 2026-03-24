@@ -130,6 +130,15 @@ function extractSynopsis(html: string): string | null {
   return metaDescription;
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function extractCoverUrl(html: string): string | null {
   const imageMatch = html.match(/<img[^>]+src="([^"]*bookcover[^"]+)"/i);
   if (imageMatch) {
@@ -218,19 +227,54 @@ export class WebnovelConnector implements Connector {
             .map((node) => {
               const clone = node.cloneNode(true) as HTMLElement;
               clone.querySelectorAll('i, .para-comment-num, .tag-num, .j_open_para_comment, .j_para_comment_count').forEach((el) => el.remove());
-              const text = clone.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-              return text;
-            })
-            .filter((text) => text.length > 0);
+              clone.querySelectorAll('br').forEach((br) => br.replaceWith('\n'));
 
-          return cleanedParagraphs.join('\n\n').trim();
+              const parts = Array.from(clone.childNodes)
+                .map((child) => {
+                  if (child.nodeType === Node.TEXT_NODE) {
+                    return child.textContent ?? '';
+                  }
+
+                  if (!(child instanceof HTMLElement)) {
+                    return '';
+                  }
+
+                  const tag = child.tagName.toLowerCase();
+                  if (tag === 'br') {
+                    return '\n';
+                  }
+
+                  if (tag === 'em' || tag === 'strong' || tag === 'i' || tag === 'b') {
+                    return child.outerHTML;
+                  }
+
+                  return child.textContent ?? '';
+                })
+                .join('')
+                .replace(/\u00a0/g, ' ')
+                .replace(/[ \t]+\n/g, '\n')
+                .replace(/\n[ \t]+/g, '\n')
+                .replace(/[ \t]{2,}/g, ' ')
+                .trim();
+
+              return parts;
+            })
+            .filter((html) => html.length > 0);
+
+          return cleanedParagraphs;
         });
 
-        if (content.length < 100) {
+        if (content.join('').length < 100) {
           throw new Error('Webnovel chapter content extraction yielded too little text.');
         }
 
-        return content;
+        return content
+          .map((paragraph) =>
+            `<p>${escapeHtml(paragraph)
+              .replace(/&lt;(\/?(?:em|strong|i|b))&gt;/g, '<$1>')
+              .replace(/\n/g, '<br />')}</p>`,
+          )
+          .join('\n');
       } finally {
         await context.close();
       }

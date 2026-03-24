@@ -16,6 +16,7 @@ function formatDate(iso: string | null) {
 }
 
 export function NovelDetailPage() {
+  const CHAPTERS_PAGE_SIZE = 20
   const { novelId } = useParams<{ novelId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -23,6 +24,7 @@ export function NovelDetailPage() {
   const [activeTab, setActiveTab] = useState<'chapters' | 'events'>('chapters')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [queuedChapterIds, setQueuedChapterIds] = useState<string[]>([])
+  const [chapterPage, setChapterPage] = useState(1)
 
   const { data: novel, isLoading } = useQuery({
     queryKey: ['novel', novelId],
@@ -31,8 +33,8 @@ export function NovelDetailPage() {
   })
 
   const { data: chapters } = useQuery({
-    queryKey: ['chapters', novelId],
-    queryFn: () => novelsApi.chapters(novelId!),
+    queryKey: ['chapters', novelId, chapterPage, CHAPTERS_PAGE_SIZE],
+    queryFn: () => novelsApi.chapters(novelId!, chapterPage, CHAPTERS_PAGE_SIZE),
     enabled: !!novelId && activeTab === 'chapters',
   })
 
@@ -124,6 +126,7 @@ export function NovelDetailPage() {
     ? Math.min(100, Math.round(((novel.lastReadChapterNumber ?? 0) / novel.lastChapterNumber) * 100))
     : 0
   const coverImageUrl = getCoverImageUrl(novel.coverUrl)
+  const totalPages = Math.max(1, Math.ceil((chapters?.total ?? 0) / CHAPTERS_PAGE_SIZE))
 
   return (
     <div className="animate-fade-in">
@@ -296,13 +299,39 @@ export function NovelDetailPage() {
       </div>
 
       {activeTab === 'chapters' && (
-        <div className="card overflow-hidden divide-y divide-ink-3">
-          {!chapters?.items.length ? (
+        <div className="space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-parchment-muted font-body">
+              {chapters?.total ?? 0} capítulos
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setChapterPage((current) => Math.max(1, current - 1))}
+                disabled={chapterPage <= 1}
+                className="rounded-lg border border-ink-3 bg-ink-2 px-3 py-1.5 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-40 font-body"
+              >
+                Anterior
+              </button>
+              <span className="text-xs text-parchment-muted font-body">
+                Página {chapterPage} de {totalPages}
+              </span>
+              <button
+                onClick={() => setChapterPage((current) => Math.min(totalPages, current + 1))}
+                disabled={chapterPage >= totalPages}
+                className="rounded-lg border border-ink-3 bg-ink-2 px-3 py-1.5 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-40 font-body"
+              >
+                Próxima
+              </button>
+            </div>
+          </div>
+
+          <div className="card overflow-hidden divide-y divide-ink-3">
+            {!chapters?.items.length ? (
             <p className="text-center text-parchment-muted text-sm py-8 font-body">
               Nenhum capítulo coletado ainda.
             </p>
-          ) : (
-            chapters.items.map((ch) => {
+            ) : (
+              chapters.items.map((ch) => {
               const isRead = ch.chapterNumber <= (novel.lastReadChapterNumber ?? 0)
               const isFetching =
                 fetchContentMutation.isPending && fetchContentMutation.variables === ch.chapterId
@@ -312,8 +341,8 @@ export function NovelDetailPage() {
                   ? ((fetchContentMutation.error as AxiosError<{ message: string }>)?.response?.data?.message ?? 'Erro ao buscar conteúdo.')
                   : null
 
-              return (
-                <div key={ch.chapterId} className="flex flex-col px-4 py-3 hover:bg-ink-2 transition-colors">
+                return (
+                  <div key={ch.chapterId} className="flex flex-col px-4 py-3 hover:bg-ink-2 transition-colors">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-3 min-w-0">
                       {isRead && (
@@ -368,10 +397,11 @@ export function NovelDetailPage() {
                       Conteúdo na fila. A lista atualiza automaticamente quando o worker concluir.
                     </p>
                   )}
-                </div>
-              )
-            })
-          )}
+                  </div>
+                )
+              })
+            )}
+          </div>
         </div>
       )}
 
