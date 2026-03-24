@@ -44,7 +44,7 @@ export async function enqueueFetchChapterContent(
   chapterId: string,
   options: EnqueueFetchChapterContentOptions = {},
 ) {
-  const { jobId = `chapter-content:${chapterId}` } = options;
+  const { jobId = `chapter-content-${chapterId}` } = options;
 
   return collectorQueue.add(
     JOB_NAMES.FETCH_CHAPTER_CONTENT,
