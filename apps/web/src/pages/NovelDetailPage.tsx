@@ -17,6 +17,7 @@ function formatDate(iso: string | null) {
 
 export function NovelDetailPage() {
   const CHAPTERS_PAGE_SIZE = 20
+  const CONTINUE_READING_PAGE_SIZE = 10000
   const { novelId } = useParams<{ novelId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -36,6 +37,12 @@ export function NovelDetailPage() {
     queryKey: ['chapters', novelId, chapterPage, CHAPTERS_PAGE_SIZE],
     queryFn: () => novelsApi.chapters(novelId!, chapterPage, CHAPTERS_PAGE_SIZE),
     enabled: !!novelId && activeTab === 'chapters',
+  })
+
+  const { data: allChapters } = useQuery({
+    queryKey: ['chapters-continue-reading', novelId],
+    queryFn: () => novelsApi.chapters(novelId!, 1, CONTINUE_READING_PAGE_SIZE),
+    enabled: !!novelId,
   })
 
   const { data: events } = useQuery({
@@ -134,6 +141,12 @@ export function NovelDetailPage() {
     : 0
   const coverImageUrl = getCoverImageUrl(novel.coverUrl)
   const totalPages = Math.max(1, Math.ceil((chapters?.total ?? 0) / CHAPTERS_PAGE_SIZE))
+  const orderedChapters = [...(allChapters?.items ?? [])].sort(
+    (left, right) => left.chapterNumber - right.chapterNumber,
+  )
+  const continueReadingChapter =
+    orderedChapters.find((chapter) => chapter.chapterNumber > (novel.lastReadChapterNumber ?? 0))
+    ?? orderedChapters[orderedChapters.length - 1]
 
   return (
     <div className="animate-fade-in">
@@ -230,6 +243,14 @@ export function NovelDetailPage() {
               >
                 {progressMutation.isPending ? '...' : 'Salvar'}
               </button>
+              {continueReadingChapter && (
+                <button
+                  onClick={() => navigate(`/novels/${novelId}/chapters/${continueReadingChapter.chapterId}`)}
+                  className="w-full sm:w-auto rounded-lg border border-amber/30 bg-amber/10 px-4 py-2 text-xs font-semibold text-amber-light transition-colors hover:bg-amber/20 font-body"
+                >
+                  Continuar lendo
+                </button>
+              )}
             </div>
           </div>
         </div>
