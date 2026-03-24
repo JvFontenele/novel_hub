@@ -4,11 +4,13 @@ import type {
   ChapterListItem,
   CreateNovelInput,
   CreateNovelResponse,
+  DeleteChapterContentResponse,
   DeleteNovelResponse,
   NovelDetail,
   NovelEventView,
   NovelListItem,
   PaginatedResponse,
+  QueueAllChapterContentResponse,
   QueueChapterContentResponse,
   ToggleSourceMonitoringInput,
   TriggerSourceCollectionResponse,
@@ -53,6 +55,21 @@ export const novelsApi = {
   fetchChapterContent: (novelId: string, chapterId: string): Promise<QueueChapterContentResponse> =>
     api
       .post<QueueChapterContentResponse>(`/novels/${novelId}/chapters/${chapterId}/content`)
+      .then((r) => r.data),
+
+  fetchAllChapterContent: (novelId: string): Promise<QueueAllChapterContentResponse> =>
+    api
+      .post<QueueAllChapterContentResponse>(`/novels/${novelId}/chapters/content`)
+      .then((r) => r.data),
+
+  reprocessChapterContent: (novelId: string, chapterId: string): Promise<QueueChapterContentResponse> =>
+    api
+      .post<QueueChapterContentResponse>(`/novels/${novelId}/chapters/${chapterId}/content/reprocess`)
+      .then((r) => r.data),
+
+  deleteChapterContent: (novelId: string, chapterId: string): Promise<DeleteChapterContentResponse> =>
+    api
+      .delete<DeleteChapterContentResponse>(`/novels/${novelId}/chapters/${chapterId}/content`)
       .then((r) => r.data),
 
   getChapterContent: (novelId: string, chapterId: string): Promise<ChapterContent> =>

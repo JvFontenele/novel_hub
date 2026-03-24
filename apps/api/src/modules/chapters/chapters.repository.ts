@@ -70,3 +70,25 @@ export async function saveChapterContent(chapterId: string, content: string) {
   `;
   return rows[0] ?? null;
 }
+
+export async function clearChapterContent(chapterId: string, novelId: string) {
+  const rows = await sql`
+    UPDATE chapters
+    SET content = NULL, content_fetched_at = NULL
+    WHERE id = ${chapterId} AND novel_id = ${novelId}
+    RETURNING id AS "chapterId"
+  `;
+
+  return rows[0] ?? null;
+}
+
+export async function listChapterIdsByNovel(novelId: string) {
+  return sql<{ chapterId: string; hasContent: boolean }[]>`
+    SELECT
+      id AS "chapterId",
+      (content IS NOT NULL) AS "hasContent"
+    FROM chapters
+    WHERE novel_id = ${novelId}
+    ORDER BY chapter_number ASC
+  `;
+}

@@ -226,6 +226,26 @@ export const queueChapterContentResponseSchema = {
   additionalProperties: false,
 } satisfies JsonSchema;
 
+export const queueAllChapterContentResponseSchema = {
+  type: 'object',
+  properties: {
+    queued: { type: 'boolean', enum: [true] },
+    totalChapters: { type: 'number' },
+  },
+  required: ['queued', 'totalChapters'],
+  additionalProperties: false,
+} satisfies JsonSchema;
+
+export const deleteChapterContentResponseSchema = {
+  type: 'object',
+  properties: {
+    removed: { type: 'boolean', enum: [true] },
+    chapterId: { type: 'string' },
+  },
+  required: ['removed', 'chapterId'],
+  additionalProperties: false,
+} satisfies JsonSchema;
+
 export const chapterParamsSchema = {
   type: 'object',
   properties: {

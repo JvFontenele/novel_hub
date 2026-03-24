@@ -23,6 +23,7 @@ export function NovelDetailPage() {
   const [progressInput, setProgressInput] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'chapters' | 'events'>('chapters')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteChapterDialog, setDeleteChapterDialog] = useState<{ chapterId: string; title: string | null } | null>(null)
   const [queuedChapterIds, setQueuedChapterIds] = useState<string[]>([])
   const [chapterPage, setChapterPage] = useState(1)
 
@@ -74,6 +75,32 @@ export function NovelDetailPage() {
     onSuccess: (_, chapterId) => {
       setQueuedChapterIds((current) => (current.includes(chapterId) ? current : [...current, chapterId]))
       queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
+    },
+  })
+
+  const fetchAllContentMutation = useMutation({
+    mutationFn: () => novelsApi.fetchAllChapterContent(novelId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
+    },
+  })
+
+  const reprocessChapterMutation = useMutation({
+    mutationFn: (chapterId: string) => novelsApi.reprocessChapterContent(novelId!, chapterId),
+    onSuccess: (_, chapterId) => {
+      setQueuedChapterIds((current) => (current.includes(chapterId) ? current : [...current, chapterId]))
+      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
+      queryClient.invalidateQueries({ queryKey: ['chapter-content', novelId, chapterId] })
+    },
+  })
+
+  const deleteChapterContentMutation = useMutation({
+    mutationFn: (chapterId: string) => novelsApi.deleteChapterContent(novelId!, chapterId),
+    onSuccess: (_, chapterId) => {
+      setQueuedChapterIds((current) => current.filter((id) => id !== chapterId))
+      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
+      queryClient.removeQueries({ queryKey: ['chapter-content', novelId, chapterId] })
+      setDeleteChapterDialog(null)
     },
   })
 
@@ -145,6 +172,28 @@ export function NovelDetailPage() {
         isPending={deleteNovelMutation.isPending}
         onCancel={() => setDeleteDialogOpen(false)}
         onConfirm={() => deleteNovelMutation.mutate()}
+      />
+      <ConfirmDialog
+        open={deleteChapterDialog !== null}
+        title="Excluir conteúdo do capítulo"
+        description={
+          deleteChapterDialog ? (
+            <>
+              O conteúdo salvo de <strong className="text-parchment">{deleteChapterDialog.title ?? 'este capítulo'}</strong> será removido.
+              Você poderá buscar novamente depois.
+            </>
+          ) : undefined
+        }
+        confirmLabel="Excluir conteúdo"
+        cancelLabel="Cancelar"
+        confirmTone="danger"
+        isPending={deleteChapterContentMutation.isPending}
+        onCancel={() => setDeleteChapterDialog(null)}
+        onConfirm={() => {
+          if (deleteChapterDialog) {
+            deleteChapterContentMutation.mutate(deleteChapterDialog.chapterId)
+          }
+        }}
       />
 
       <Link
@@ -304,7 +353,15 @@ export function NovelDetailPage() {
             <p className="text-xs text-parchment-muted font-body">
               {chapters?.total ?? 0} capítulos
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                onClick={() => fetchAllContentMutation.mutate()}
+                disabled={fetchAllContentMutation.isPending}
+                className="w-full sm:w-auto rounded-lg bg-amber px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-amber-light disabled:opacity-40 font-body"
+              >
+                {fetchAllContentMutation.isPending ? 'Enfileirando...' : 'Buscar todos os capítulos'}
+              </button>
+              <div className="flex items-center gap-2">
               <button
                 onClick={() => setChapterPage((current) => Math.max(1, current - 1))}
                 disabled={chapterPage <= 1}
@@ -322,6 +379,7 @@ export function NovelDetailPage() {
               >
                 Próxima
               </button>
+              </div>
             </div>
           </div>
 
@@ -376,6 +434,24 @@ export function NovelDetailPage() {
                           {isFetching ? 'Enfileirando...' : isQueued ? 'Processando...' : 'Buscar'}
                         </button>
                       )}
+
+                      <button
+                        onClick={() => reprocessChapterMutation.mutate(ch.chapterId)}
+                        disabled={reprocessChapterMutation.isPending || isQueued}
+                        className="rounded-md border border-amber/30 bg-amber/10 px-2.5 py-1 text-[11px] font-semibold text-amber-light transition-colors hover:bg-amber/20 disabled:opacity-50 font-body"
+                      >
+                        {reprocessChapterMutation.isPending && reprocessChapterMutation.variables === ch.chapterId
+                          ? 'Reprocessando...'
+                          : 'Reprocessar'}
+                      </button>
+
+                      <button
+                        onClick={() => setDeleteChapterDialog({ chapterId: ch.chapterId, title: ch.title })}
+                        disabled={deleteChapterContentMutation.isPending}
+                        className="rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-400 transition-colors hover:bg-red-500/15 disabled:opacity-50 font-body"
+                      >
+                        Excluir
+                      </button>
 
                       <a
                         href={ch.url}

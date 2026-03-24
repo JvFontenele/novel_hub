@@ -49,6 +49,16 @@ export interface QueueChapterContentResponse {
   chapterId: string;
 }
 
+export interface QueueAllChapterContentResponse {
+  queued: true;
+  totalChapters: number;
+}
+
+export interface DeleteChapterContentResponse {
+  removed: true;
+  chapterId: string;
+}
+
 export interface NovelEventView {
   eventId: string;
   type: NovelEventType;

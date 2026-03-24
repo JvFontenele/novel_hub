@@ -70,7 +70,7 @@ export function Layout() {
             </div>
           </div>
 
-          <nav className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 -mx-1 px-1 sm:mx-0 sm:px-0">
+          <nav className="flex flex-wrap items-center gap-1">
             {navItem('/', 'Novels', true)}
             {navItem('/notifications', 'Notificações', false, unreadCount)}
             {navItem('/admin', 'Admin')}
