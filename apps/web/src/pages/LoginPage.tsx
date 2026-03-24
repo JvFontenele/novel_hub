@@ -41,19 +41,19 @@ export function LoginPage() {
 
   return (
     <div className="auth-shell">
-      <div className="absolute top-6 right-6 z-20">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
         <button onClick={toggleTheme} className="theme-toggle" type="button">
           <span>{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>
           <span aria-hidden="true">{theme === 'dark' ? '☼' : '☾'}</span>
         </button>
       </div>
 
-      <div className="w-full max-w-sm relative z-10">
-        <div className="text-center mb-10 animate-fade-up">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-ink-2 border border-ink-3 mb-5">
+      <div className="w-full max-w-sm relative z-10 pt-12 sm:pt-0">
+        <div className="text-center mb-8 sm:mb-10 animate-fade-up">
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-ink-2 border border-ink-3 mb-4 sm:mb-5">
             <span className="text-2xl">📚</span>
           </div>
-          <h1 className="font-display text-4xl text-parchment font-semibold tracking-tight">
+          <h1 className="font-display text-3xl sm:text-4xl text-parchment font-semibold tracking-tight">
             Novel Hub
           </h1>
           <p className="text-parchment-muted text-sm mt-2 font-body">
@@ -61,10 +61,10 @@ export function LoginPage() {
           </p>
         </div>
 
-        <div className="card p-8 animate-fade-up animate-delay-1">
+        <div className="card p-5 sm:p-8 animate-fade-up animate-delay-1">
           <div className="mb-6">
             <p className="text-[11px] uppercase tracking-[0.26em] text-parchment-muted font-body">Acesso</p>
-            <h2 className="font-display text-[2rem] text-parchment font-semibold">Entrar</h2>
+            <h2 className="font-display text-[1.75rem] sm:text-[2rem] text-parchment font-semibold">Entrar</h2>
           </div>
 
           {error && (

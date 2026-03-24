@@ -51,8 +51,8 @@ export function NovelsPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="min-w-0">
           <h1 className="font-display text-2xl text-parchment font-light">Minhas Novels</h1>
           {novels?.length != null && (
             <p className="text-xs text-parchment-muted mt-1 font-body">
@@ -62,7 +62,7 @@ export function NovelsPage() {
         </div>
         <button
           onClick={() => { setShowForm((v) => !v); setFormError('') }}
-          className={`text-sm font-body font-medium px-4 py-2 rounded-lg border transition-all duration-150 ${
+          className={`w-full sm:w-auto text-sm font-body font-medium px-4 py-2 rounded-lg border transition-all duration-150 ${
             showForm
               ? 'border-ink-4 text-parchment-muted hover:text-parchment'
               : 'bg-amber text-ink border-amber hover:bg-amber-light'
@@ -114,7 +114,7 @@ export function NovelsPage() {
               <button
                 type="submit"
                 disabled={addMutation.isPending}
-                className="bg-amber hover:bg-amber-light text-ink font-semibold text-sm px-6 py-2.5 rounded-lg transition-all duration-150 disabled:opacity-40 font-body"
+                className="w-full sm:w-auto bg-amber hover:bg-amber-light text-ink font-semibold text-sm px-6 py-2.5 rounded-lg transition-all duration-150 disabled:opacity-40 font-body"
               >
                 {addMutation.isPending ? 'Adicionando...' : 'Adicionar novel'}
               </button>
@@ -148,7 +148,7 @@ export function NovelsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {novels.map((novel, i) => {
             const pct = progressPercent(novel)
             const st = STATUS_MAP[novel.status]
@@ -175,7 +175,7 @@ export function NovelsPage() {
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <p className="font-display text-sm text-parchment truncate group-hover:text-amber-light transition-colors leading-snug">
+                    <p className="font-display text-sm text-parchment line-clamp-2 group-hover:text-amber-light transition-colors leading-snug break-words">
                       {novel.title}
                     </p>
 

@@ -63,6 +63,7 @@
       background-color 0.25s ease,
       color 0.25s ease,
       background 0.25s ease;
+    overflow-x: hidden;
   }
 
   a,
@@ -167,7 +168,7 @@
   }
 
   .nav-pill {
-    @apply relative px-4 py-2 rounded-lg text-sm font-semibold font-body;
+    @apply relative px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold font-body whitespace-nowrap shrink-0;
   }
 
   .theme-toggle {
@@ -185,6 +186,17 @@
   .auth-shell {
     @apply min-h-screen flex items-center justify-center px-4 relative;
     background: rgb(var(--color-backdrop));
+  }
+
+  .chapter-content img,
+  .chapter-content iframe,
+  .chapter-content table,
+  .chapter-content pre {
+    max-width: 100%;
+  }
+
+  .chapter-content pre {
+    overflow-x: auto;
   }
 
   .animate-delay-1 { animation-delay: 0.1s; animation-fill-mode: both; }

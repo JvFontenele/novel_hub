@@ -95,7 +95,7 @@ export function ChapterReaderPage() {
 
   if (isNotFound || (!isLoading && !chapter)) {
     return (
-      <div className="max-w-2xl mx-auto text-center py-16">
+      <div className="max-w-2xl mx-auto text-center py-12 sm:py-16">
         <Link
           to={`/novels/${novelId}`}
           className="inline-flex items-center gap-1.5 text-xs text-parchment-muted hover:text-parchment transition-colors mb-8 font-body"
@@ -134,7 +134,7 @@ export function ChapterReaderPage() {
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <Link
           to={`/novels/${novelId}`}
           className="inline-flex items-center gap-1.5 text-xs text-parchment-muted hover:text-parchment transition-colors font-body flex-shrink-0"
@@ -142,11 +142,11 @@ export function ChapterReaderPage() {
           ← Voltar
         </Link>
 
-        <div className="min-w-0 text-center">
+        <div className="min-w-0 text-left sm:text-center">
           {novel && (
-            <p className="text-[11px] text-parchment-muted font-body truncate">{novel.title}</p>
+            <p className="text-[11px] text-parchment-muted font-body break-words">{novel.title}</p>
           )}
-          <p className="text-sm font-body text-parchment truncate">
+          <p className="text-sm font-body text-parchment break-words">
             {chapter.title
               ? <><span className="text-parchment-muted">Cap. {chapter.chapterNumber}</span> — {chapter.title}</>
               : `Capítulo ${chapter.chapterNumber}`}
@@ -166,16 +166,16 @@ export function ChapterReaderPage() {
 
       {/* Chapter content */}
       <div
-        className="card p-6 mb-6 font-body text-parchment text-base leading-relaxed chapter-content"
+        className="card p-4 sm:p-6 mb-6 font-body text-parchment text-[15px] sm:text-base leading-relaxed chapter-content overflow-x-auto"
         dangerouslySetInnerHTML={{ __html: chapter.content }}
       />
 
       {/* Bottom navigation */}
-      <div className="flex items-center justify-between gap-3 pb-8">
+      <div className="flex flex-col gap-2 pb-8 sm:flex-row sm:items-center sm:justify-between">
         <button
           onClick={() => prevChapter && navigate(`/novels/${novelId}/chapters/${prevChapter.chapterId}`)}
           disabled={!prevChapter}
-          className="rounded-lg border border-ink-3 bg-ink-2 px-4 py-2 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-30 font-body"
+          className="w-full sm:w-auto rounded-lg border border-ink-3 bg-ink-2 px-4 py-2 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-30 font-body"
         >
           ← Cap. anterior
         </button>
@@ -187,7 +187,7 @@ export function ChapterReaderPage() {
             }
           }}
           disabled={isRead || progressMutation.isPending}
-          className={`rounded-lg px-4 py-2 text-xs font-semibold transition-all font-body ${
+          className={`w-full sm:w-auto rounded-lg px-4 py-2 text-xs font-semibold transition-all font-body ${
             isRead
               ? 'bg-amber/10 text-amber border border-amber/30 opacity-60 cursor-default'
               : 'bg-amber hover:bg-amber-light text-ink disabled:opacity-40'
@@ -199,7 +199,7 @@ export function ChapterReaderPage() {
         <button
           onClick={() => nextChapter && navigate(`/novels/${novelId}/chapters/${nextChapter.chapterId}`)}
           disabled={!nextChapter}
-          className="rounded-lg border border-ink-3 bg-ink-2 px-4 py-2 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-30 font-body"
+          className="w-full sm:w-auto rounded-lg border border-ink-3 bg-ink-2 px-4 py-2 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-30 font-body"
         >
           Cap. seguinte →
         </button>

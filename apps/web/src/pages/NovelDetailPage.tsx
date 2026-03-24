@@ -152,17 +152,17 @@ export function NovelDetailPage() {
       </Link>
 
       {/* Hero */}
-      <div className="card p-6 mb-5 shadow-none">
-        <div className="flex gap-5">
+      <div className="card p-4 sm:p-6 mb-5 shadow-none">
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
           {coverImageUrl ? (
             <img
               src={coverImageUrl}
               alt={novel.title}
-              className="w-20 h-28 object-cover rounded-lg flex-shrink-0 border border-ink-4"
+              className="w-20 h-28 object-cover rounded-lg flex-shrink-0 border border-ink-4 mx-auto sm:mx-0"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           ) : (
-            <div className="w-20 h-28 bg-ink-3 rounded-lg flex-shrink-0 flex items-center justify-center text-3xl border border-ink-4">
+            <div className="w-20 h-28 bg-ink-3 rounded-lg flex-shrink-0 flex items-center justify-center text-3xl border border-ink-4 mx-auto sm:mx-0">
               📕
             </div>
           )}
@@ -170,7 +170,7 @@ export function NovelDetailPage() {
           <div className="flex-1 min-w-0">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <h1 className="font-display text-xl text-parchment font-light leading-snug">{novel.title}</h1>
+                <h1 className="font-display text-lg sm:text-xl text-parchment font-light leading-snug break-words">{novel.title}</h1>
                 <p className="text-xs text-parchment-muted mt-1 font-body">
                   {novel.lastChapterNumber} capítulos disponíveis
                 </p>
@@ -204,7 +204,7 @@ export function NovelDetailPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3">
               <input
                 type="number"
                 min={0}
@@ -212,12 +212,12 @@ export function NovelDetailPage() {
                 value={progressInput}
                 onChange={(e) => setProgressInput(e.target.value)}
                 placeholder={`Atualizar capítulo…`}
-                className="input-field !py-2 !text-xs w-44"
+                className="input-field !py-2 !text-xs w-full sm:w-44"
               />
               <button
                 onClick={() => progressMutation.mutate(Number(progressInput))}
                 disabled={!progressInput || progressMutation.isPending}
-                className="bg-amber hover:bg-amber-light text-ink text-xs font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-40 font-body"
+                className="w-full sm:w-auto bg-amber hover:bg-amber-light text-ink text-xs font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-40 font-body"
               >
                 {progressMutation.isPending ? '...' : 'Salvar'}
               </button>
@@ -235,7 +235,7 @@ export function NovelDetailPage() {
           <div className="space-y-2">
             {novel.sources.map((src) => (
               <div key={src.sourceId} className="rounded-lg border border-ink-3 bg-ink-2/50 px-3 py-3">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <a
                       href={src.url}
@@ -251,7 +251,7 @@ export function NovelDetailPage() {
                   </div>
                   <button
                     onClick={() => toggleSourceMutation.mutate({ sourceId: src.sourceId, enabled: !src.monitoringEnabled })}
-                    className={`badge flex-shrink-0 transition-colors ${
+                    className={`badge w-full sm:w-auto justify-center text-center flex-shrink-0 transition-colors ${
                       src.monitoringEnabled
                         ? 'status-ongoing hover:bg-red-950/60 hover:text-red-400 hover:border-red-900/60'
                         : 'bg-red-950/60 text-red-400 border-red-900/60 hover:bg-emerald-950/60 hover:text-emerald-400 hover:border-emerald-900/60'
@@ -265,7 +265,7 @@ export function NovelDetailPage() {
                   <button
                     onClick={() => reprocessSourceMutation.mutate(src.sourceId)}
                     disabled={reprocessSourceMutation.isPending}
-                    className="rounded-lg border border-amber/30 bg-amber/10 px-3 py-1.5 text-xs font-semibold text-amber-light transition-colors hover:bg-amber/20 disabled:opacity-40 font-body"
+                    className="w-full sm:w-auto rounded-lg border border-amber/30 bg-amber/10 px-3 py-1.5 text-xs font-semibold text-amber-light transition-colors hover:bg-amber/20 disabled:opacity-40 font-body"
                   >
                     {reprocessSourceMutation.isPending && reprocessSourceMutation.variables === src.sourceId
                       ? 'Reprocessando...'
@@ -279,7 +279,7 @@ export function NovelDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-ink-1 p-1 rounded-xl border border-ink-3 w-fit">
+      <div className="flex gap-1 mb-4 bg-ink-1 p-1 rounded-xl border border-ink-3 w-full sm:w-fit overflow-x-auto">
         {(['chapters', 'events'] as const).map((tab) => (
           <button
             key={tab}
@@ -314,12 +314,12 @@ export function NovelDetailPage() {
 
               return (
                 <div key={ch.chapterId} className="flex flex-col px-4 py-3 hover:bg-ink-2 transition-colors">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3 min-w-0">
                       {isRead && (
-                        <span className="w-4 h-4 rounded-full bg-amber/20 text-amber text-[9px] flex items-center justify-center flex-shrink-0">✓</span>
+                        <span className="w-4 h-4 rounded-full bg-amber/20 text-amber text-[9px] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">✓</span>
                       )}
-                      <span className={`text-sm font-body truncate ${isRead ? 'text-parchment-muted' : 'text-parchment'}`}>
+                      <span className={`text-sm font-body break-words ${isRead ? 'text-parchment-muted' : 'text-parchment'}`}>
                         {ch.title ? (
                           <><span className="text-parchment-muted">Cap. {ch.chapterNumber}</span> — {ch.title}</>
                         ) : (
@@ -328,8 +328,8 @@ export function NovelDetailPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[11px] text-parchment-muted font-body hidden sm:block">{formatDate(ch.publishedAt)}</span>
+                    <div className="flex flex-wrap items-center gap-2 flex-shrink-0 sm:justify-end">
+                      <span className="text-[11px] text-parchment-muted font-body w-full sm:w-auto order-3 sm:order-none">{formatDate(ch.publishedAt)}</span>
 
                       {ch.hasContent ? (
                         <Link
@@ -381,7 +381,7 @@ export function NovelDetailPage() {
             <p className="text-center text-parchment-muted text-sm py-8 font-body">Nenhum evento ainda.</p>
           ) : (
             events.map((ev) => (
-              <div key={ev.eventId} className="card px-4 py-3 flex justify-between items-center">
+              <div key={ev.eventId} className="card px-4 py-3 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
                 <span className="text-xs text-amber font-mono bg-amber-muted/30 px-2 py-0.5 rounded-md">
                   {ev.type}
                 </span>

@@ -46,23 +46,37 @@ export function Layout() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base border border-ink-3 bg-ink-2">
-              📚
-            </div>
-            <span className="font-display text-[1.55rem] text-parchment font-semibold tracking-tight hidden sm:block">
-              Novel Hub
-            </span>
-          </Link>
+        <div className="max-w-5xl mx-auto px-4 sm:px-5 py-3 sm:h-14 sm:py-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between gap-3 sm:contents">
+            <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base border border-ink-3 bg-ink-2 flex-shrink-0">
+                📚
+              </div>
+              <span className="font-display text-xl sm:text-[1.55rem] text-parchment font-semibold tracking-tight truncate">
+                Novel Hub
+              </span>
+            </Link>
 
-          <nav className="flex items-center gap-1">
+            <div className="flex items-center gap-2 sm:hidden">
+              <button onClick={toggleTheme} className="theme-toggle !px-2.5 !py-1.5" type="button">
+                <span aria-hidden="true">{theme === 'dark' ? '☼' : '☾'}</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-xs text-parchment-muted hover:text-parchment transition-colors font-body border border-ink-3 hover:border-amber/35 px-2.5 py-1.5 rounded-lg"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+
+          <nav className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 -mx-1 px-1 sm:mx-0 sm:px-0">
             {navItem('/', 'Novels', true)}
             {navItem('/notifications', 'Notificações', false, unreadCount)}
             {navItem('/admin', 'Admin')}
           </nav>
 
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
             <button onClick={toggleTheme} className="theme-toggle" type="button">
               <span>{theme === 'dark' ? 'Claro' : 'Escuro'}</span>
               <span aria-hidden="true">{theme === 'dark' ? '☼' : '☾'}</span>
@@ -78,7 +92,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-5 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-5 py-6 sm:py-8">
         <Outlet />
       </main>
     </div>

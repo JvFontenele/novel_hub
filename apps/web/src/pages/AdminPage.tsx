@@ -48,7 +48,8 @@ export function AdminPage() {
           <p className="text-parchment-muted text-sm font-body">Nenhuma execução registrada.</p>
         ) : (
           <div className="card overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="divider border-t-0">
                   <th className="text-left px-4 py-3 text-[11px] text-parchment-muted font-body font-medium uppercase tracking-wider">Fonte</th>
@@ -89,7 +90,8 @@ export function AdminPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         )}
       </section>
@@ -117,19 +119,19 @@ export function AdminPage() {
           <div className="space-y-3">
             {failures.map((f) => (
               <div key={f.sourceId} className="card border-red-950/60 p-4">
-                <div className="flex justify-between items-start gap-4 mb-3">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start mb-3">
+                  <div className="min-w-0">
                     <p className="text-sm font-body text-parchment">{f.novelTitle}</p>
                     <a
                       href={f.sourceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-amber-light hover:underline font-body"
+                      className="text-xs text-amber-light hover:underline font-body break-all"
                     >
                       {f.sourceUrl}
                     </a>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-left sm:text-right flex-shrink-0">
                     <span className="text-red-400 text-sm font-semibold font-body">{f.consecutiveFailures}×</span>
                     <p className="text-[10px] text-parchment-muted font-body mt-0.5">
                       {f.lastCheckedAt ? formatDate(f.lastCheckedAt) : 'sem registro'}

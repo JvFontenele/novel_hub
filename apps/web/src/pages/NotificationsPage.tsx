@@ -62,13 +62,13 @@ export function NotificationsPage() {
                 {unread.map((n) => (
                   <div
                     key={n.id}
-                    className="card border-amber-dim/30 bg-ink-2 px-4 py-4 flex items-start justify-between gap-4 animate-fade-up"
+                    className="card border-amber-dim/30 bg-ink-2 px-4 py-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between animate-fade-up"
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div className="w-1.5 h-1.5 rounded-full bg-amber mt-2 flex-shrink-0 shadow-[0_0_6px_#c9943a]" />
-                      <div>
-                        <p className="text-sm text-parchment font-body">{n.title}</p>
-                        <div className="flex items-center gap-3 mt-1.5">
+                      <div className="min-w-0">
+                        <p className="text-sm text-parchment font-body break-words">{n.title}</p>
+                        <div className="flex flex-wrap items-center gap-3 mt-1.5">
                           {n.novelId && (
                             <Link
                               to={`/novels/${n.novelId}`}
@@ -84,7 +84,7 @@ export function NotificationsPage() {
                     <button
                       onClick={() => markReadMutation.mutate(n.id)}
                       disabled={markReadMutation.isPending}
-                      className="text-xs text-parchment-muted hover:text-parchment transition-colors flex-shrink-0 border border-ink-4 hover:border-ink-5 px-2.5 py-1 rounded font-body"
+                      className="w-full sm:w-auto text-xs text-parchment-muted hover:text-parchment transition-colors flex-shrink-0 border border-ink-4 hover:border-ink-5 px-2.5 py-1 rounded font-body"
                     >
                       Marcar lida
                     </button>
@@ -103,9 +103,9 @@ export function NotificationsPage() {
                 {read.map((n) => (
                   <div key={n.id} className="card px-4 py-3.5 flex items-start gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-ink-5 mt-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm text-parchment-dim font-body">{n.title}</p>
-                      <div className="flex items-center gap-3 mt-1">
+                    <div className="min-w-0">
+                      <p className="text-sm text-parchment-dim font-body break-words">{n.title}</p>
+                      <div className="flex flex-wrap items-center gap-3 mt-1">
                         {n.novelId && (
                           <Link
                             to={`/novels/${n.novelId}`}
