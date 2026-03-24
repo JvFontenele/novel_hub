@@ -19,4 +19,5 @@ export interface Connector {
   canHandle(url: string): boolean;
   normalizeUrl(url: string): string;
   fetchNovelData(url: string): Promise<ParsedNovelData>;
+  fetchChapterContent?(url: string): Promise<string>;
 }

@@ -187,8 +187,33 @@ export const chapterListItemSchema = {
     url: { type: 'string', format: 'uri' },
     publishedAt: { type: 'string', format: 'date-time', nullable: true },
     createdAt: { type: 'string', format: 'date-time' },
+    hasContent: { type: 'boolean' },
   },
-  required: ['chapterId', 'chapterNumber', 'title', 'url', 'publishedAt', 'createdAt'],
+  required: ['chapterId', 'chapterNumber', 'title', 'url', 'publishedAt', 'createdAt', 'hasContent'],
+  additionalProperties: false,
+} satisfies JsonSchema;
+
+export const chapterContentSchema = {
+  type: 'object',
+  properties: {
+    chapterId: { type: 'string' },
+    chapterNumber: { type: 'number' },
+    title: { type: 'string', nullable: true },
+    content: { type: 'string' },
+    contentFetchedAt: { type: 'string', format: 'date-time' },
+    url: { type: 'string', format: 'uri' },
+  },
+  required: ['chapterId', 'chapterNumber', 'title', 'content', 'contentFetchedAt', 'url'],
+  additionalProperties: false,
+} satisfies JsonSchema;
+
+export const chapterParamsSchema = {
+  type: 'object',
+  properties: {
+    novelId: { type: 'string', description: 'Novel identifier' },
+    chapterId: { type: 'string', description: 'Chapter identifier' },
+  },
+  required: ['novelId', 'chapterId'],
   additionalProperties: false,
 } satisfies JsonSchema;
 

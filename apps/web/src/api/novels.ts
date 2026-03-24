@@ -1,5 +1,6 @@
 import { api } from './client'
 import type {
+  ChapterContent,
   ChapterListItem,
   CreateNovelInput,
   CreateNovelResponse,
@@ -47,4 +48,14 @@ export const novelsApi = {
 
   triggerSourceCollection: (sourceId: string): Promise<TriggerSourceCollectionResponse> =>
     api.post<TriggerSourceCollectionResponse>(`/sources/${sourceId}/collect`).then((r) => r.data),
+
+  fetchChapterContent: (novelId: string, chapterId: string): Promise<ChapterContent> =>
+    api
+      .post<ChapterContent>(`/novels/${novelId}/chapters/${chapterId}/content`)
+      .then((r) => r.data),
+
+  getChapterContent: (novelId: string, chapterId: string): Promise<ChapterContent> =>
+    api
+      .get<ChapterContent>(`/novels/${novelId}/chapters/${chapterId}/content`)
+      .then((r) => r.data),
 }

@@ -32,6 +32,16 @@ export interface ChapterListItem {
   url: string;
   publishedAt: string | null;
   createdAt: string;
+  hasContent: boolean;
+}
+
+export interface ChapterContent {
+  chapterId: string;
+  chapterNumber: number;
+  title: string | null;
+  content: string;
+  contentFetchedAt: string;
+  url: string;
 }
 
 export interface NovelEventView {

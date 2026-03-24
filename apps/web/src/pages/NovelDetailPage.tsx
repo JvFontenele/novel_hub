@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCoverImageUrl, novelsApi } from '@/api/novels'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import type { AxiosError } from 'axios'
 
 function formatDate(iso: string | null) {
   if (!iso) return 'sem data'
@@ -62,6 +63,13 @@ export function NovelDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['events', novelId] })
       queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
       queryClient.invalidateQueries({ queryKey: ['novels'] })
+    },
+  })
+
+  const fetchContentMutation = useMutation({
+    mutationFn: (chapterId: string) => novelsApi.fetchChapterContent(novelId!, chapterId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
     },
   })
 
@@ -272,29 +280,69 @@ export function NovelDetailPage() {
               Nenhum capítulo coletado ainda.
             </p>
           ) : (
-            chapters.items.map((ch) => (
-              <a
-                key={ch.chapterId}
-                href={ch.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-4 py-3 hover:bg-ink-2 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  {ch.chapterNumber <= (novel.lastReadChapterNumber ?? 0) && (
-                    <span className="w-4 h-4 rounded-full bg-amber/20 text-amber text-[9px] flex items-center justify-center flex-shrink-0">✓</span>
+            chapters.items.map((ch) => {
+              const isRead = ch.chapterNumber <= (novel.lastReadChapterNumber ?? 0)
+              const isFetching =
+                fetchContentMutation.isPending && fetchContentMutation.variables === ch.chapterId
+              const fetchError =
+                fetchContentMutation.isError && fetchContentMutation.variables === ch.chapterId
+                  ? ((fetchContentMutation.error as AxiosError<{ message: string }>)?.response?.data?.message ?? 'Erro ao buscar conteúdo.')
+                  : null
+
+              return (
+                <div key={ch.chapterId} className="flex flex-col px-4 py-3 hover:bg-ink-2 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {isRead && (
+                        <span className="w-4 h-4 rounded-full bg-amber/20 text-amber text-[9px] flex items-center justify-center flex-shrink-0">✓</span>
+                      )}
+                      <span className={`text-sm font-body truncate ${isRead ? 'text-parchment-muted' : 'text-parchment'}`}>
+                        {ch.title ? (
+                          <><span className="text-parchment-muted">Cap. {ch.chapterNumber}</span> — {ch.title}</>
+                        ) : (
+                          `Capítulo ${ch.chapterNumber}`
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[11px] text-parchment-muted font-body hidden sm:block">{formatDate(ch.publishedAt)}</span>
+
+                      {ch.hasContent ? (
+                        <Link
+                          to={`/novels/${novelId}/chapters/${ch.chapterId}`}
+                          className="rounded-md bg-amber/15 border border-amber/30 px-2.5 py-1 text-[11px] font-semibold text-amber-light hover:bg-amber/25 transition-colors font-body"
+                        >
+                          Ler
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => fetchContentMutation.mutate(ch.chapterId)}
+                          disabled={isFetching}
+                          className="rounded-md border border-ink-3 bg-ink-2 px-2.5 py-1 text-[11px] font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-50 font-body"
+                        >
+                          {isFetching ? 'Buscando...' : 'Buscar'}
+                        </button>
+                      )}
+
+                      <a
+                        href={ch.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Abrir no site original"
+                        className="text-parchment-muted hover:text-parchment transition-colors text-xs"
+                      >
+                        ↗
+                      </a>
+                    </div>
+                  </div>
+
+                  {fetchError && (
+                    <p className="text-[11px] text-red-400 mt-1 font-body">{fetchError}</p>
                   )}
-                  <span className={`text-sm font-body ${ch.chapterNumber <= (novel.lastReadChapterNumber ?? 0) ? 'text-parchment-muted' : 'text-parchment'} group-hover:text-parchment transition-colors`}>
-                    {ch.title ? (
-                      <><span className="text-parchment-muted">Cap. {ch.chapterNumber}</span> — {ch.title}</>
-                    ) : (
-                      `Capítulo ${ch.chapterNumber}`
-                    )}
-                  </span>
                 </div>
-                <span className="text-[11px] text-parchment-muted font-body">{formatDate(ch.publishedAt)}</span>
-              </a>
-            ))
+              )
+            })
           )}
         </div>
       )}

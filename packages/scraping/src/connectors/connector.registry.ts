@@ -21,3 +21,11 @@ export function resolveConnectorKey(url: string): string {
 export function normalizeSourceUrl(url: string): string {
   return resolveConnector(url).normalizeUrl(url);
 }
+
+export async function fetchChapterContent(url: string): Promise<string> {
+  const connector = resolveConnector(url);
+  if (connector.fetchChapterContent) {
+    return connector.fetchChapterContent(url);
+  }
+  throw new Error('Conteúdo de capítulo não disponível para esta fonte.');
+}

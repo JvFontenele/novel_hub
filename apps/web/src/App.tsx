@@ -6,6 +6,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { NovelsPage } from '@/pages/NovelsPage'
 import { NovelDetailPage } from '@/pages/NovelDetailPage'
+import { ChapterReaderPage } from '@/pages/ChapterReaderPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { AdminPage } from '@/pages/AdminPage'
 import { ThemeProvider } from '@/context/ThemeContext'
@@ -62,6 +63,7 @@ export default function App() {
               >
                 <Route index element={<NovelsPage />} />
                 <Route path="novels/:novelId" element={<NovelDetailPage />} />
+                <Route path="novels/:novelId/chapters/:chapterId" element={<ChapterReaderPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="admin" element={<AdminPage />} />
               </Route>
