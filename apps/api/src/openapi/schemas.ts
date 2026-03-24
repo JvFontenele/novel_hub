@@ -207,6 +207,16 @@ export const chapterContentSchema = {
   additionalProperties: false,
 } satisfies JsonSchema;
 
+export const queueChapterContentResponseSchema = {
+  type: 'object',
+  properties: {
+    queued: { type: 'boolean', enum: [true] },
+    chapterId: { type: 'string' },
+  },
+  required: ['queued', 'chapterId'],
+  additionalProperties: false,
+} satisfies JsonSchema;
+
 export const chapterParamsSchema = {
   type: 'object',
   properties: {

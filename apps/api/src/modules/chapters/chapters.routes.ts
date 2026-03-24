@@ -1,10 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { fetchChapterContent } from '@novel-hub/scraping';
 import {
   findChapterById,
   getChapterContent,
   listChaptersByNovel,
-  saveChapterContent,
 } from './chapters.repository.js';
 import {
   bearerSecurity,
@@ -15,7 +13,9 @@ import {
   errorResponseSchema,
   idParamsSchema,
   listResponseSchema,
+  queueChapterContentResponseSchema,
 } from '../../openapi/schemas.js';
+import { enqueueFetchChapterContent } from '../../queue/producer.js';
 
 export async function chaptersRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { novelId: string }; Querystring: { page?: number; pageSize?: number } }>(
@@ -53,10 +53,8 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
         security: bearerSecurity,
         params: chapterParamsSchema,
         response: {
-          200: chapterContentSchema,
+          202: queueChapterContentResponseSchema,
           404: errorResponseSchema,
-          502: errorResponseSchema,
-          504: errorResponseSchema,
         },
       },
     },
@@ -68,39 +66,11 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ message: 'Capítulo não encontrado.' });
       }
 
-      let content: string;
-      try {
-        const timeoutSignal = AbortSignal.timeout(50_000);
-        content = await Promise.race([
-          fetchChapterContent(chapter.url),
-          new Promise<never>((_, reject) => {
-            timeoutSignal.addEventListener('abort', () =>
-              reject(Object.assign(new Error('timeout'), { name: 'TimeoutError' })),
-            );
-          }),
-        ]);
-      } catch (err: unknown) {
-        const isTimeout =
-          err instanceof Error && (err.name === 'TimeoutError' || err.message === 'timeout');
-        if (isTimeout) {
-          return reply.status(504).send({ message: 'Tempo limite excedido ao buscar o capítulo.' });
-        }
-        const message = err instanceof Error ? err.message : 'Erro ao buscar conteúdo do capítulo.';
-        return reply.status(502).send({ message });
-      }
+      await enqueueFetchChapterContent(novelId, chapterId);
 
-      const saved = await saveChapterContent(chapterId, content);
-      if (!saved) {
-        return reply.status(502).send({ message: 'Erro ao salvar conteúdo do capítulo.' });
-      }
-
-      return reply.send({
+      return reply.status(202).send({
+        queued: true,
         chapterId: chapter.chapterId,
-        chapterNumber: Number(chapter.chapterNumber),
-        title: chapter.title ?? null,
-        content: saved.content,
-        contentFetchedAt: saved.contentFetchedAt,
-        url: chapter.url,
       });
     },
   );

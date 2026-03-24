@@ -9,6 +9,7 @@ import type {
   NovelEventView,
   NovelListItem,
   PaginatedResponse,
+  QueueChapterContentResponse,
   ToggleSourceMonitoringInput,
   TriggerSourceCollectionResponse,
   UpdateProgressResponse,
@@ -49,9 +50,9 @@ export const novelsApi = {
   triggerSourceCollection: (sourceId: string): Promise<TriggerSourceCollectionResponse> =>
     api.post<TriggerSourceCollectionResponse>(`/sources/${sourceId}/collect`).then((r) => r.data),
 
-  fetchChapterContent: (novelId: string, chapterId: string): Promise<ChapterContent> =>
+  fetchChapterContent: (novelId: string, chapterId: string): Promise<QueueChapterContentResponse> =>
     api
-      .post<ChapterContent>(`/novels/${novelId}/chapters/${chapterId}/content`)
+      .post<QueueChapterContentResponse>(`/novels/${novelId}/chapters/${chapterId}/content`)
       .then((r) => r.data),
 
   getChapterContent: (novelId: string, chapterId: string): Promise<ChapterContent> =>

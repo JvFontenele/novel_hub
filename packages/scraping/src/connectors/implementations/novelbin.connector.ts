@@ -1,4 +1,4 @@
-import { fetchHtmlWithBrowser } from '../../browser/fetch-html.js';
+import { fetchHtmlWithBrowser, launchBrowser } from '../../browser/fetch-html.js';
 import type { Connector, ParsedChapter, ParsedNovelData } from '../connector.interface.js';
 import { decodeHtml } from './generic.connector.js';
 

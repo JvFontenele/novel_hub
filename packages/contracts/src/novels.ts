@@ -44,6 +44,11 @@ export interface ChapterContent {
   url: string;
 }
 
+export interface QueueChapterContentResponse {
+  queued: true;
+  chapterId: string;
+}
+
 export interface NovelEventView {
   eventId: string;
   type: NovelEventType;

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { novelsApi } from '@/api/novels'
@@ -7,6 +8,7 @@ export function ChapterReaderPage() {
   const { novelId, chapterId } = useParams<{ novelId: string; chapterId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [isQueued, setIsQueued] = useState(false)
 
   const { data: chapter, isLoading, isError, error } = useQuery({
     queryKey: ['chapter-content', novelId, chapterId],
@@ -30,10 +32,28 @@ export function ChapterReaderPage() {
   const fetchContentMutation = useMutation({
     mutationFn: () => novelsApi.fetchChapterContent(novelId!, chapterId!),
     onSuccess: () => {
+      setIsQueued(true)
       queryClient.invalidateQueries({ queryKey: ['chapter-content', novelId, chapterId] })
       queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
     },
   })
+
+  useEffect(() => {
+    if (chapter) {
+      setIsQueued(false)
+    }
+  }, [chapter])
+
+  useEffect(() => {
+    if (!isQueued || !novelId || !chapterId) return
+
+    const intervalId = window.setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['chapter-content', novelId, chapterId] })
+      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
+    }, 3000)
+
+    return () => window.clearInterval(intervalId)
+  }, [chapterId, isQueued, novelId, queryClient])
 
   const progressMutation = useMutation({
     mutationFn: (n: number) => novelsApi.updateProgress(novelId!, n),
@@ -82,19 +102,27 @@ export function ChapterReaderPage() {
         >
           ← Voltar à novel
         </Link>
-        <p className="text-parchment-muted font-body mb-6">
-          O conteúdo deste capítulo ainda não foi buscado.
+        <p className="text-parchment-muted font-body mb-2">
+          {isQueued
+            ? 'O capítulo está sendo processado em segundo plano.'
+            : 'O conteúdo deste capítulo ainda não foi buscado.'}
         </p>
+        {isQueued && (
+          <p className="text-parchment-muted/80 text-xs font-body mb-6">
+            Esta página atualiza automaticamente quando o worker terminar.
+          </p>
+        )}
+        {!isQueued && <div className="mb-4" />}
         <button
           onClick={() => fetchContentMutation.mutate()}
-          disabled={fetchContentMutation.isPending}
+          disabled={fetchContentMutation.isPending || isQueued}
           className="bg-amber hover:bg-amber-light text-ink text-sm font-semibold px-6 py-2.5 rounded-lg transition-all disabled:opacity-40 font-body"
         >
-          {fetchContentMutation.isPending ? 'Buscando...' : 'Buscar conteúdo agora'}
+          {fetchContentMutation.isPending ? 'Enfileirando...' : isQueued ? 'Processando...' : 'Buscar conteúdo agora'}
         </button>
         {fetchContentMutation.isError && (
           <p className="text-red-400 text-sm mt-4 font-body">
-            Erro ao buscar conteúdo. Tente novamente.
+            Erro ao enfileirar conteúdo. Tente novamente.
           </p>
         )}
       </div>

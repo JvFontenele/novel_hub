@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCoverImageUrl, novelsApi } from '@/api/novels'
@@ -22,6 +22,7 @@ export function NovelDetailPage() {
   const [progressInput, setProgressInput] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'chapters' | 'events'>('chapters')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [queuedChapterIds, setQueuedChapterIds] = useState<string[]>([])
 
   const { data: novel, isLoading } = useQuery({
     queryKey: ['novel', novelId],
@@ -68,10 +69,31 @@ export function NovelDetailPage() {
 
   const fetchContentMutation = useMutation({
     mutationFn: (chapterId: string) => novelsApi.fetchChapterContent(novelId!, chapterId),
-    onSuccess: () => {
+    onSuccess: (_, chapterId) => {
+      setQueuedChapterIds((current) => (current.includes(chapterId) ? current : [...current, chapterId]))
       queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
     },
   })
+
+  useEffect(() => {
+    if (!chapters?.items.length || queuedChapterIds.length === 0) return
+
+    const completedIds = new Set(
+      chapters.items.filter((chapter) => chapter.hasContent).map((chapter) => chapter.chapterId),
+    )
+
+    setQueuedChapterIds((current) => current.filter((chapterId) => !completedIds.has(chapterId)))
+  }, [chapters, queuedChapterIds.length])
+
+  useEffect(() => {
+    if (!novelId || queuedChapterIds.length === 0) return
+
+    const intervalId = window.setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
+    }, 3000)
+
+    return () => window.clearInterval(intervalId)
+  }, [novelId, queryClient, queuedChapterIds.length])
 
   const deleteNovelMutation = useMutation({
     mutationFn: () => novelsApi.remove(novelId!),
@@ -284,6 +306,7 @@ export function NovelDetailPage() {
               const isRead = ch.chapterNumber <= (novel.lastReadChapterNumber ?? 0)
               const isFetching =
                 fetchContentMutation.isPending && fetchContentMutation.variables === ch.chapterId
+              const isQueued = queuedChapterIds.includes(ch.chapterId)
               const fetchError =
                 fetchContentMutation.isError && fetchContentMutation.variables === ch.chapterId
                   ? ((fetchContentMutation.error as AxiosError<{ message: string }>)?.response?.data?.message ?? 'Erro ao buscar conteúdo.')
@@ -318,10 +341,10 @@ export function NovelDetailPage() {
                       ) : (
                         <button
                           onClick={() => fetchContentMutation.mutate(ch.chapterId)}
-                          disabled={isFetching}
+                          disabled={isFetching || isQueued}
                           className="rounded-md border border-ink-3 bg-ink-2 px-2.5 py-1 text-[11px] font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-50 font-body"
                         >
-                          {isFetching ? 'Buscando...' : 'Buscar'}
+                          {isFetching ? 'Enfileirando...' : isQueued ? 'Processando...' : 'Buscar'}
                         </button>
                       )}
 
@@ -339,6 +362,11 @@ export function NovelDetailPage() {
 
                   {fetchError && (
                     <p className="text-[11px] text-red-400 mt-1 font-body">{fetchError}</p>
+                  )}
+                  {!fetchError && isQueued && (
+                    <p className="text-[11px] text-parchment-muted mt-1 font-body">
+                      Conteúdo na fila. A lista atualiza automaticamente quando o worker concluir.
+                    </p>
                   )}
                 </div>
               )

@@ -43,6 +43,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       PORT: 4000
       NODE_ENV: production
+      PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium
 
   worker:
     build:
