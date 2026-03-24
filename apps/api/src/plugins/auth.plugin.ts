@@ -14,7 +14,7 @@ declare module '@fastify/jwt' {
 export const authPlugin = fp(async (fastify: FastifyInstance) => {
   fastify.register(jwt, {
     secret: config.JWT_SECRET,
-    sign: { expiresIn: '15m' },
+    sign: { expiresIn: config.JWT_EXPIRES_IN },
   });
 
   fastify.decorate('authenticate', async function (request: any, reply: any) {
