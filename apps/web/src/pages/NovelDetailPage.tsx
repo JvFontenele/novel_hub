@@ -23,7 +23,6 @@ export function NovelDetailPage() {
   const [progressInput, setProgressInput] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'chapters' | 'events'>('chapters')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deleteChapterDialog, setDeleteChapterDialog] = useState<{ chapterId: string; title: string | null } | null>(null)
   const [queuedChapterIds, setQueuedChapterIds] = useState<string[]>([])
   const [chapterPage, setChapterPage] = useState(1)
 
@@ -82,25 +81,6 @@ export function NovelDetailPage() {
     mutationFn: () => novelsApi.fetchAllChapterContent(novelId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
-    },
-  })
-
-  const reprocessChapterMutation = useMutation({
-    mutationFn: (chapterId: string) => novelsApi.reprocessChapterContent(novelId!, chapterId),
-    onSuccess: (_, chapterId) => {
-      setQueuedChapterIds((current) => (current.includes(chapterId) ? current : [...current, chapterId]))
-      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
-      queryClient.invalidateQueries({ queryKey: ['chapter-content', novelId, chapterId] })
-    },
-  })
-
-  const deleteChapterContentMutation = useMutation({
-    mutationFn: (chapterId: string) => novelsApi.deleteChapterContent(novelId!, chapterId),
-    onSuccess: (_, chapterId) => {
-      setQueuedChapterIds((current) => current.filter((id) => id !== chapterId))
-      queryClient.invalidateQueries({ queryKey: ['chapters', novelId] })
-      queryClient.removeQueries({ queryKey: ['chapter-content', novelId, chapterId] })
-      setDeleteChapterDialog(null)
     },
   })
 
@@ -173,29 +153,6 @@ export function NovelDetailPage() {
         onCancel={() => setDeleteDialogOpen(false)}
         onConfirm={() => deleteNovelMutation.mutate()}
       />
-      <ConfirmDialog
-        open={deleteChapterDialog !== null}
-        title="Excluir conteúdo do capítulo"
-        description={
-          deleteChapterDialog ? (
-            <>
-              O conteúdo salvo de <strong className="text-parchment">{deleteChapterDialog.title ?? 'este capítulo'}</strong> será removido.
-              Você poderá buscar novamente depois.
-            </>
-          ) : undefined
-        }
-        confirmLabel="Excluir conteúdo"
-        cancelLabel="Cancelar"
-        confirmTone="danger"
-        isPending={deleteChapterContentMutation.isPending}
-        onCancel={() => setDeleteChapterDialog(null)}
-        onConfirm={() => {
-          if (deleteChapterDialog) {
-            deleteChapterContentMutation.mutate(deleteChapterDialog.chapterId)
-          }
-        }}
-      />
-
       <Link
         to="/"
         className="inline-flex items-center gap-1.5 text-xs text-parchment-muted hover:text-parchment transition-colors mb-6 font-body"
@@ -331,7 +288,7 @@ export function NovelDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-ink-1 p-1 rounded-xl border border-ink-3 w-full sm:w-fit overflow-x-auto">
+      <div className="flex gap-1 mb-4 bg-ink-1 p-1 rounded-xl border border-ink-3 w-full sm:w-fit">
         {(['chapters', 'events'] as const).map((tab) => (
           <button
             key={tab}
@@ -434,24 +391,6 @@ export function NovelDetailPage() {
                           {isFetching ? 'Enfileirando...' : isQueued ? 'Processando...' : 'Buscar'}
                         </button>
                       )}
-
-                      <button
-                        onClick={() => reprocessChapterMutation.mutate(ch.chapterId)}
-                        disabled={reprocessChapterMutation.isPending || isQueued}
-                        className="rounded-md border border-amber/30 bg-amber/10 px-2.5 py-1 text-[11px] font-semibold text-amber-light transition-colors hover:bg-amber/20 disabled:opacity-50 font-body"
-                      >
-                        {reprocessChapterMutation.isPending && reprocessChapterMutation.variables === ch.chapterId
-                          ? 'Reprocessando...'
-                          : 'Reprocessar'}
-                      </button>
-
-                      <button
-                        onClick={() => setDeleteChapterDialog({ chapterId: ch.chapterId, title: ch.title })}
-                        disabled={deleteChapterContentMutation.isPending}
-                        className="rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-400 transition-colors hover:bg-red-500/15 disabled:opacity-50 font-body"
-                      >
-                        Excluir
-                      </button>
 
                       <a
                         href={ch.url}

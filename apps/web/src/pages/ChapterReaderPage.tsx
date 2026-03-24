@@ -6,6 +6,7 @@ import type { ChapterListItem } from '@novel-hub/contracts'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 export function ChapterReaderPage() {
+  const READER_NAV_PAGE_SIZE = 10000
   const { novelId, chapterId } = useParams<{ novelId: string; chapterId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -26,8 +27,8 @@ export function ChapterReaderPage() {
   })
 
   const { data: chaptersData } = useQuery({
-    queryKey: ['chapters', novelId],
-    queryFn: () => novelsApi.chapters(novelId!),
+    queryKey: ['chapters-reader-nav', novelId],
+    queryFn: () => novelsApi.chapters(novelId!, 1, READER_NAV_PAGE_SIZE),
     enabled: !!novelId,
   })
 
