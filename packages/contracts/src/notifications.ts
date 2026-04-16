@@ -4,6 +4,7 @@ export interface NotificationView {
   id: string;
   type: NovelEventType;
   novelId: string | null;
+  novelTitle: string | null;
   title: string;
   body: string | null;
   read: boolean;
@@ -12,4 +13,8 @@ export interface NotificationView {
 
 export interface MarkNotificationReadResponse {
   id: string;
+}
+
+export interface MarkAllNotificationsReadResponse {
+  updatedCount: number;
 }

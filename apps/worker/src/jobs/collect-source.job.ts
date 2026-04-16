@@ -5,7 +5,7 @@ import { resolveConnector } from '@novel-hub/scraping';
 import { sql } from '../db/client.js';
 
 export async function collectSourceJob(job: Job<CollectSourceJobData>) {
-  const { sourceId } = job.data;
+  const { sourceId, requestedByUserId } = job.data;
   const startedAt = new Date();
 
   const [source] = await sql`SELECT * FROM novel_sources WHERE id = ${sourceId}`;
@@ -152,6 +152,54 @@ export async function collectSourceJob(job: Job<CollectSourceJobData>) {
         updated_at = NOW()
       WHERE id = ${sourceId}
     `;
+
+    const totalAttempts = job.opts.attempts ?? 1;
+    const isFinalAttempt = job.attemptsMade + 1 >= totalAttempts;
+
+    if (isFinalAttempt) {
+      const [event] = await sql`
+        INSERT INTO events (novel_id, source_id, type, payload)
+        VALUES (
+          ${source.novel_id},
+          ${sourceId},
+          'SOURCE_FAILED',
+          ${sql.json({
+            sourceId,
+            sourceUrl: source.url,
+            errorMessage,
+            consecutiveFailures: newFailures,
+          })}
+        )
+        RETURNING id
+      `;
+
+      if (requestedByUserId) {
+        await sql`
+          INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
+          VALUES (
+            ${requestedByUserId},
+            ${source.novel_id},
+            ${event.id},
+            'SOURCE_FAILED',
+            'Erro ao buscar capítulos da novel',
+            ${errorMessage}
+          )
+        `;
+      } else {
+        await sql`
+          INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
+          SELECT
+            s.user_id,
+            ${source.novel_id},
+            ${event.id},
+            'SOURCE_FAILED',
+            'Erro ao buscar capítulos da novel',
+            ${errorMessage}
+          FROM subscriptions s
+          WHERE s.novel_id = ${source.novel_id}
+        `;
+      }
+    }
 
     throw err; // let BullMQ handle retries
   }

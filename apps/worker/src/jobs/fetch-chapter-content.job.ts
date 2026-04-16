@@ -12,7 +12,7 @@ interface ChapterRow {
 }
 
 export async function fetchChapterContentJob(job: Job<FetchChapterContentJobData>) {
-  const { novelId, chapterId } = job.data;
+  const { novelId, chapterId, requestedByUserId } = job.data;
 
   const rows = await sql<ChapterRow[]>`
     SELECT
@@ -35,22 +35,47 @@ export async function fetchChapterContentJob(job: Job<FetchChapterContentJobData
     return chapter;
   }
 
-  const content = await fetchChapterContent(chapter.url);
+  try {
+    const content = await fetchChapterContent(chapter.url);
 
-  const savedRows = await sql`
-    UPDATE chapters
-    SET content = ${content}, content_fetched_at = NOW()
-    WHERE id = ${chapterId}
-    RETURNING
-      id AS "chapterId",
-      content_fetched_at AS "contentFetchedAt"
-  `;
+    const savedRows = await sql`
+      UPDATE chapters
+      SET content = ${content}, content_fetched_at = NOW()
+      WHERE id = ${chapterId}
+      RETURNING
+        id AS "chapterId",
+        content_fetched_at AS "contentFetchedAt"
+    `;
 
-  if (savedRows.length === 0) {
-    throw new Error(`Failed to save content for chapter ${chapterId}`);
+    if (savedRows.length === 0) {
+      throw new Error(`Failed to save content for chapter ${chapterId}`);
+    }
+
+    console.info(`[fetch-chapter-content] chapterId=${chapterId} chapterNumber=${chapter.chapterNumber} fetched`);
+
+    return savedRows[0];
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const totalAttempts = job.opts.attempts ?? 1;
+    const isFinalAttempt = job.attemptsMade + 1 >= totalAttempts;
+
+    if (isFinalAttempt && requestedByUserId) {
+      const chapterLabel = chapter.title
+        ? `Capítulo ${chapter.chapterNumber} - ${chapter.title}`
+        : `Capítulo ${chapter.chapterNumber}`;
+
+      await sql`
+        INSERT INTO notifications (user_id, novel_id, type, title, body)
+        VALUES (
+          ${requestedByUserId},
+          ${novelId},
+          'SOURCE_FAILED',
+          'Erro ao buscar conteúdo do capítulo',
+          ${`${chapterLabel}: ${errorMessage}`}
+        )
+      `;
+    }
+
+    throw err;
   }
-
-  console.info(`[fetch-chapter-content] chapterId=${chapterId} chapterNumber=${chapter.chapterNumber} fetched`);
-
-  return savedRows[0];
 }

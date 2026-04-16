@@ -13,6 +13,7 @@ export async function triggerCollection(sourceId: string, userId: string) {
 
   await enqueueCollect(sourceId, {
     jobId: `${sourceId}-manual-${Date.now()}`,
+    requestedByUserId: userId,
   });
 
   return {

@@ -23,18 +23,36 @@ export function NotificationsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   })
 
+  const markAllReadMutation = useMutation({
+    mutationFn: notificationsApi.markAllRead,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+
   const unread = notifications?.filter((n) => !n.read) ?? []
   const read = notifications?.filter((n) => n.read) ?? []
 
   return (
     <div className="animate-fade-in">
       <div className="mb-8">
-        <h1 className="font-display text-2xl text-parchment font-light">Notificações</h1>
-        {unread.length > 0 && (
-          <p className="text-xs text-parchment-muted mt-1 font-body">
-            {unread.length} não {unread.length === 1 ? 'lida' : 'lidas'}
-          </p>
-        )}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="font-display text-2xl text-parchment font-light">Notificações</h1>
+            {unread.length > 0 && (
+              <p className="text-xs text-parchment-muted mt-1 font-body">
+                {unread.length} não {unread.length === 1 ? 'lida' : 'lidas'}
+              </p>
+            )}
+          </div>
+          {unread.length > 0 && (
+            <button
+              onClick={() => markAllReadMutation.mutate()}
+              disabled={markAllReadMutation.isPending}
+              className="w-full sm:w-auto rounded-lg border border-ink-4 px-3 py-2 text-xs text-parchment-muted transition-colors hover:border-ink-5 hover:text-parchment disabled:opacity-50 font-body"
+            >
+              {markAllReadMutation.isPending ? 'Marcando...' : 'Marcar tudo como lido'}
+            </button>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -67,7 +85,15 @@ export function NotificationsPage() {
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="w-1.5 h-1.5 rounded-full bg-amber mt-2 flex-shrink-0 shadow-[0_0_6px_#c9943a]" />
                       <div className="min-w-0">
+                        {n.novelTitle && (
+                          <p className="text-[11px] uppercase tracking-[0.16em] text-amber-light/80 font-body break-words">
+                            {n.novelTitle}
+                          </p>
+                        )}
                         <p className="text-sm text-parchment font-body break-words">{n.title}</p>
+                        {n.body && (
+                          <p className="mt-1 text-xs text-parchment-muted font-body break-words">{n.body}</p>
+                        )}
                         <div className="flex flex-wrap items-center gap-3 mt-1.5">
                           {n.novelId && (
                             <Link
@@ -104,7 +130,15 @@ export function NotificationsPage() {
                   <div key={n.id} className="card px-4 py-3.5 flex items-start gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-ink-5 mt-2 flex-shrink-0" />
                     <div className="min-w-0">
+                      {n.novelTitle && (
+                        <p className="text-[11px] uppercase tracking-[0.16em] text-parchment-muted font-body break-words">
+                          {n.novelTitle}
+                        </p>
+                      )}
                       <p className="text-sm text-parchment-dim font-body break-words">{n.title}</p>
+                      {n.body && (
+                        <p className="mt-1 text-xs text-parchment-muted font-body break-words">{n.body}</p>
+                      )}
                       <div className="flex flex-wrap items-center gap-3 mt-1">
                         {n.novelId && (
                           <Link

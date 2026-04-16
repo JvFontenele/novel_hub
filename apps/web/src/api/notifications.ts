@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { NotificationView } from '@novel-hub/contracts'
+import type { MarkAllNotificationsReadResponse, NotificationView } from '@novel-hub/contracts'
 
 export const notificationsApi = {
   list: (): Promise<NotificationView[]> =>
@@ -7,4 +7,7 @@ export const notificationsApi = {
 
   markRead: (id: string): Promise<void> =>
     api.patch(`/notifications/${id}/read`).then(() => undefined),
+
+  markAllRead: (): Promise<MarkAllNotificationsReadResponse> =>
+    api.patch<MarkAllNotificationsReadResponse>('/notifications/read-all').then((r) => r.data),
 }

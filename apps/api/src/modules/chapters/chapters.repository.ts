@@ -1,7 +1,15 @@
 import { sql } from '../../db/client.js';
 
-export async function listChaptersByNovel(novelId: string, page = 1, pageSize = 50) {
+export type ChapterSortOrder = 'asc' | 'desc';
+
+export async function listChaptersByNovel(
+  novelId: string,
+  page = 1,
+  pageSize = 50,
+  order: ChapterSortOrder = 'desc',
+) {
   const offset = (page - 1) * pageSize;
+  const sortDirection = order === 'asc' ? sql`ASC` : sql`DESC`;
   const items = await sql`
     SELECT
       id AS "chapterId",
@@ -13,7 +21,7 @@ export async function listChaptersByNovel(novelId: string, page = 1, pageSize = 
       (content IS NOT NULL) AS "hasContent"
     FROM chapters
     WHERE novel_id = ${novelId}
-    ORDER BY chapter_number DESC
+    ORDER BY chapter_number ${sortDirection}
     LIMIT ${pageSize} OFFSET ${offset}
   `;
 

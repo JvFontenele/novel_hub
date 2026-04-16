@@ -20,14 +20,15 @@ const collectorQueue = new Queue(QUEUE_NAMES.COLLECTOR, {
 interface EnqueueCollectOptions {
   delayMs?: number;
   jobId?: string;
+  requestedByUserId?: string;
 }
 
 export async function enqueueCollect(sourceId: string, options: EnqueueCollectOptions = {}) {
-  const { delayMs = 0, jobId = sourceId } = options;
+  const { delayMs = 0, jobId = sourceId, requestedByUserId } = options;
 
   return collectorQueue.add(
     JOB_NAMES.COLLECT_SOURCE,
-    { sourceId } satisfies CollectSourceJobData,
+    { sourceId, requestedByUserId } satisfies CollectSourceJobData,
     {
       jobId,
       delay: delayMs,
@@ -37,6 +38,7 @@ export async function enqueueCollect(sourceId: string, options: EnqueueCollectOp
 
 interface EnqueueFetchChapterContentOptions {
   jobId?: string;
+  requestedByUserId?: string;
 }
 
 export async function enqueueFetchChapterContent(
@@ -44,11 +46,11 @@ export async function enqueueFetchChapterContent(
   chapterId: string,
   options: EnqueueFetchChapterContentOptions = {},
 ) {
-  const { jobId = `chapter-content-${chapterId}` } = options;
+  const { jobId = `chapter-content-${chapterId}`, requestedByUserId } = options;
 
   return collectorQueue.add(
     JOB_NAMES.FETCH_CHAPTER_CONTENT,
-    { novelId, chapterId } satisfies FetchChapterContentJobData,
+    { novelId, chapterId, requestedByUserId } satisfies FetchChapterContentJobData,
     { jobId },
   );
 }

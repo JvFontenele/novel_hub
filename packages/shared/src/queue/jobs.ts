@@ -9,9 +9,11 @@ export const JOB_NAMES = {
 
 export interface CollectSourceJobData {
   sourceId: string;
+  requestedByUserId?: string;
 }
 
 export interface FetchChapterContentJobData {
   novelId: string;
   chapterId: string;
+  requestedByUserId?: string;
 }

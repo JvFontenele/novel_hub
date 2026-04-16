@@ -261,6 +261,7 @@ export const chapterListQuerySchema = {
   properties: {
     page: { type: 'number', minimum: 1, default: 1 },
     pageSize: { type: 'number', minimum: 1, default: 50 },
+    order: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
   },
   additionalProperties: false,
 } satisfies JsonSchema;
@@ -312,12 +313,13 @@ export const notificationSchema = {
     id: { type: 'string' },
     type: { type: 'string', enum: [...novelEventTypeValues] },
     novelId: { type: 'string', nullable: true },
+    novelTitle: { type: 'string', nullable: true },
     title: { type: 'string' },
     body: { type: 'string', nullable: true },
     read: { type: 'boolean' },
     createdAt: { type: 'string', format: 'date-time' },
   },
-  required: ['id', 'type', 'novelId', 'title', 'body', 'read', 'createdAt'],
+  required: ['id', 'type', 'novelId', 'novelTitle', 'title', 'body', 'read', 'createdAt'],
   additionalProperties: false,
 } satisfies JsonSchema;
 
@@ -327,6 +329,15 @@ export const markNotificationReadResponseSchema = {
     id: { type: 'string' },
   },
   required: ['id'],
+  additionalProperties: false,
+} satisfies JsonSchema;
+
+export const markAllNotificationsReadResponseSchema = {
+  type: 'object',
+  properties: {
+    updatedCount: { type: 'number' },
+  },
+  required: ['updatedCount'],
   additionalProperties: false,
 } satisfies JsonSchema;
 

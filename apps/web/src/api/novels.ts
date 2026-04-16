@@ -22,6 +22,8 @@ export function getCoverImageUrl(coverUrl: string | null) {
   return `/api/v1/assets/cover?url=${encodeURIComponent(coverUrl)}`
 }
 
+export type ChapterOrder = 'asc' | 'desc'
+
 export const novelsApi = {
   list: (): Promise<NovelListItem[]> =>
     api.get<{ items: NovelListItem[] }>('/novels').then((r) => r.data.items),
@@ -38,9 +40,9 @@ export const novelsApi = {
   remove: (novelId: string): Promise<DeleteNovelResponse> =>
     api.delete<DeleteNovelResponse>(`/novels/${novelId}`).then((r) => r.data),
 
-  chapters: (novelId: string, page = 1, pageSize = 20): Promise<PaginatedResponse<ChapterListItem>> =>
+  chapters: (novelId: string, page = 1, pageSize = 20, order: ChapterOrder = 'desc'): Promise<PaginatedResponse<ChapterListItem>> =>
     api
-      .get<PaginatedResponse<ChapterListItem>>(`/novels/${novelId}/chapters`, { params: { page, pageSize } })
+      .get<PaginatedResponse<ChapterListItem>>(`/novels/${novelId}/chapters`, { params: { page, pageSize, order } })
       .then((r) => r.data),
 
   events: (novelId: string): Promise<NovelEventView[]> =>

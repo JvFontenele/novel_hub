@@ -22,7 +22,7 @@ import {
 import { enqueueFetchChapterContent } from '../../queue/producer.js';
 
 export async function chaptersRoutes(fastify: FastifyInstance) {
-  fastify.get<{ Params: { novelId: string }; Querystring: { page?: number; pageSize?: number } }>(
+  fastify.get<{ Params: { novelId: string }; Querystring: { page?: number; pageSize?: number; order?: 'asc' | 'desc' } }>(
     '/novels/:novelId/chapters',
     {
       preHandler: [fastify.authenticate],
@@ -40,8 +40,8 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { page = 1, pageSize = 50 } = request.query;
-      const { items, total } = await listChaptersByNovel(request.params.novelId, page, pageSize);
+      const { page = 1, pageSize = 50, order = 'desc' } = request.query;
+      const { items, total } = await listChaptersByNovel(request.params.novelId, page, pageSize, order);
       return reply.send({ items, total, page, pageSize });
     },
   );
@@ -74,6 +74,7 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
         chapters.map((chapter) =>
           enqueueFetchChapterContent(novelId, chapter.chapterId, {
             jobId: `chapter-content-${chapter.chapterId}`,
+            requestedByUserId: request.user.sub,
           }),
         ),
       );
@@ -109,7 +110,9 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ message: 'Capítulo não encontrado.' });
       }
 
-      await enqueueFetchChapterContent(novelId, chapterId);
+      await enqueueFetchChapterContent(novelId, chapterId, {
+        requestedByUserId: request.user.sub,
+      });
 
       return reply.status(202).send({
         queued: true,
@@ -143,7 +146,9 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
       }
 
       await clearChapterContent(chapterId, novelId);
-      await enqueueFetchChapterContent(novelId, chapterId);
+      await enqueueFetchChapterContent(novelId, chapterId, {
+        requestedByUserId: request.user.sub,
+      });
 
       return reply.status(202).send({
         queued: true,

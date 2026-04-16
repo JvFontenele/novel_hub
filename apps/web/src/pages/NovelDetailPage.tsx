@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getCoverImageUrl, novelsApi } from '@/api/novels'
+import { getCoverImageUrl, novelsApi, type ChapterOrder } from '@/api/novels'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { AxiosError } from 'axios'
 
@@ -26,6 +26,7 @@ export function NovelDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [queuedChapterIds, setQueuedChapterIds] = useState<string[]>([])
   const [chapterPage, setChapterPage] = useState(1)
+  const [chapterOrder, setChapterOrder] = useState<ChapterOrder>('desc')
 
   const { data: novel, isLoading } = useQuery({
     queryKey: ['novel', novelId],
@@ -34,8 +35,8 @@ export function NovelDetailPage() {
   })
 
   const { data: chapters } = useQuery({
-    queryKey: ['chapters', novelId, chapterPage, CHAPTERS_PAGE_SIZE],
-    queryFn: () => novelsApi.chapters(novelId!, chapterPage, CHAPTERS_PAGE_SIZE),
+    queryKey: ['chapters', novelId, chapterPage, CHAPTERS_PAGE_SIZE, chapterOrder],
+    queryFn: () => novelsApi.chapters(novelId!, chapterPage, CHAPTERS_PAGE_SIZE, chapterOrder),
     enabled: !!novelId && activeTab === 'chapters',
   })
 
@@ -332,6 +333,17 @@ export function NovelDetailPage() {
               {chapters?.total ?? 0} capítulos
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <select
+                value={chapterOrder}
+                onChange={(e) => {
+                  setChapterOrder(e.target.value as ChapterOrder)
+                  setChapterPage(1)
+                }}
+                className="input-field !py-1.5 !text-xs w-full sm:w-auto sm:min-w-44"
+              >
+                <option value="desc">Trazer os últimos primeiro</option>
+                <option value="asc">Trazer os primeiros primeiro</option>
+              </select>
               <button
                 onClick={() => fetchAllContentMutation.mutate()}
                 disabled={fetchAllContentMutation.isPending}
@@ -339,25 +351,6 @@ export function NovelDetailPage() {
               >
                 {fetchAllContentMutation.isPending ? 'Enfileirando...' : 'Buscar todos os capítulos'}
               </button>
-              <div className="flex items-center gap-2">
-              <button
-                onClick={() => setChapterPage((current) => Math.max(1, current - 1))}
-                disabled={chapterPage <= 1}
-                className="rounded-lg border border-ink-3 bg-ink-2 px-3 py-1.5 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-40 font-body"
-              >
-                Anterior
-              </button>
-              <span className="text-xs text-parchment-muted font-body">
-                Página {chapterPage} de {totalPages}
-              </span>
-              <button
-                onClick={() => setChapterPage((current) => Math.min(totalPages, current + 1))}
-                disabled={chapterPage >= totalPages}
-                className="rounded-lg border border-ink-3 bg-ink-2 px-3 py-1.5 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-40 font-body"
-              >
-                Próxima
-              </button>
-              </div>
             </div>
           </div>
 
@@ -437,6 +430,28 @@ export function NovelDetailPage() {
                 )
               })
             )}
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <div className="flex items-center gap-2 justify-between sm:justify-end">
+              <button
+                onClick={() => setChapterPage((current) => Math.max(1, current - 1))}
+                disabled={chapterPage <= 1}
+                className="rounded-lg border border-ink-3 bg-ink-2 px-3 py-1.5 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-40 font-body"
+              >
+                Anterior
+              </button>
+              <span className="text-xs text-parchment-muted font-body">
+                Página {chapterPage} de {totalPages}
+              </span>
+              <button
+                onClick={() => setChapterPage((current) => Math.min(totalPages, current + 1))}
+                disabled={chapterPage >= totalPages}
+                className="rounded-lg border border-ink-3 bg-ink-2 px-3 py-1.5 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-40 font-body"
+              >
+                Próxima
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import {
   errorResponseSchema,
   idParamsSchema,
   listResponseSchema,
+  markAllNotificationsReadResponseSchema,
   markNotificationReadResponseSchema,
   notificationSchema,
 } from '../../openapi/schemas.js';
@@ -54,6 +55,27 @@ export async function notificationsRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ message: 'Notification not found' });
       }
       return reply.send({ id: result.id });
+    },
+  );
+
+  fastify.patch(
+    '/notifications/read-all',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['Notifications'],
+        summary: 'Mark all notifications as read',
+        description: 'Marks every notification as read for the authenticated user.',
+        security: bearerSecurity,
+        response: {
+          200: markAllNotificationsReadResponseSchema,
+          401: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const updatedCount = await notificationsRepo.markAllNotificationsRead(request.user.sub);
+      return reply.send({ updatedCount });
     },
   );
 }
