@@ -67,6 +67,10 @@ function parseChapterNumber(rawTitle: string, href: string): number | null {
   return null;
 }
 
+function buildFallbackChapterTitle(chapterNumber: number): string {
+  return Number.isInteger(chapterNumber) ? `Chapter ${chapterNumber}` : `Chapter ${chapterNumber}`;
+}
+
 function parseChapters(html: string): ParsedChapter[] {
   const chapters = new Map<string, ParsedChapter>();
   const anchorPattern =
@@ -93,6 +97,21 @@ function parseChapters(html: string): ParsedChapter[] {
 
     if (!current || !current.title || (current.title && /^read now$/i.test(current.title) && nextChapter.title)) {
       chapters.set(href, nextChapter);
+    }
+  }
+
+  const firstReadUrl = extractMeta(html, 'og:novel:read_url');
+  if (firstReadUrl) {
+    const normalizedUrl = decodeHtml(firstReadUrl).trim();
+    const chapterNumber = parseChapterNumber('', normalizedUrl);
+
+    if (chapterNumber !== null && !chapters.has(normalizedUrl)) {
+      chapters.set(normalizedUrl, {
+        chapterNumber,
+        title: buildFallbackChapterTitle(chapterNumber),
+        url: normalizedUrl,
+        publishedAt: null,
+      });
     }
   }
 
