@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,40 +7,56 @@
 @layer base {
   :root,
   .theme-light {
-    --color-ink: 245 247 250;
-    --color-ink-1: 255 255 255;
-    --color-ink-2: 239 243 248;
-    --color-ink-3: 221 227 235;
-    --color-ink-4: 194 202 214;
-    --color-ink-5: 141 151 166;
-    --color-accent: 37 99 235;
-    --color-accent-light: 59 130 246;
-    --color-accent-dim: 29 78 216;
-    --color-accent-muted: 219 234 254;
-    --color-parchment: 17 24 39;
-    --color-parchment-dim: 55 65 81;
-    --color-parchment-muted: 107 114 128;
-    --color-backdrop: 248 250 252;
-    --color-glow: 219 234 254;
+    --font-ui: 'Inter', 'Segoe UI', sans-serif;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-reading: 'Inter', 'Segoe UI', sans-serif;
+    --color-ink: 240 243 247;
+    --color-ink-1: 249 251 253;
+    --color-ink-2: 233 237 243;
+    --color-ink-3: 212 220 230;
+    --color-ink-4: 180 191 204;
+    --color-ink-5: 128 140 156;
+    --color-accent: 74 108 163;
+    --color-accent-light: 98 130 182;
+    --color-accent-dim: 56 86 133;
+    --color-accent-muted: 220 229 242;
+    --color-parchment: 31 40 53;
+    --color-parchment-dim: 72 84 101;
+    --color-parchment-muted: 106 118 135;
+    --color-backdrop: 233 238 244;
+    --color-glow: 216 226 241;
+    --reader-paper: 245 247 250;
+    --reader-paper-edge: 223 229 237;
+    --reader-text: 43 53 67;
+    --reader-muted: 109 121 138;
+    --reader-shadow: 72 86 104;
     color-scheme: light;
   }
 
   .theme-dark {
-    --color-ink: 15 23 42;
-    --color-ink-1: 17 24 39;
-    --color-ink-2: 30 41 59;
-    --color-ink-3: 51 65 85;
-    --color-ink-4: 71 85 105;
-    --color-ink-5: 100 116 139;
-    --color-accent: 96 165 250;
-    --color-accent-light: 147 197 253;
-    --color-accent-dim: 59 130 246;
-    --color-accent-muted: 30 41 59;
-    --color-parchment: 241 245 249;
-    --color-parchment-dim: 203 213 225;
-    --color-parchment-muted: 148 163 184;
-    --color-backdrop: 2 6 23;
-    --color-glow: 30 41 59;
+    --font-ui: 'Inter', 'Segoe UI', sans-serif;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-reading: 'Inter', 'Segoe UI', sans-serif;
+    --color-ink: 18 23 31;
+    --color-ink-1: 23 29 38;
+    --color-ink-2: 31 39 51;
+    --color-ink-3: 48 58 74;
+    --color-ink-4: 74 87 106;
+    --color-ink-5: 123 138 160;
+    --color-accent: 121 153 204;
+    --color-accent-light: 149 177 222;
+    --color-accent-dim: 91 124 176;
+    --color-accent-muted: 34 44 61;
+    --color-parchment: 229 235 243;
+    --color-parchment-dim: 192 203 217;
+    --color-parchment-muted: 147 160 179;
+    --color-backdrop: 11 15 21;
+    --color-glow: 39 50 68;
+    --reader-paper: 26 32 41;
+    --reader-paper-edge: 48 58 73;
+    --reader-text: 221 228 237;
+    --reader-muted: 155 168 186;
+    --reader-shadow: 6 10 16;
     color-scheme: dark;
   }
 
@@ -54,9 +72,11 @@
 
   body {
     min-height: 100vh;
-    background: rgb(var(--color-backdrop));
+    background:
+      radial-gradient(circle at top, rgb(var(--color-glow) / 0.12), transparent 34%),
+      linear-gradient(180deg, rgb(var(--color-backdrop)), rgb(var(--color-ink)));
     color: rgb(var(--color-parchment));
-    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition:
@@ -64,6 +84,14 @@
       color 0.25s ease,
       background 0.25s ease;
     overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
   }
 
   a,
@@ -100,17 +128,26 @@
     background: rgb(var(--color-accent-dim) / 0.28);
     color: rgb(var(--color-parchment));
   }
+
+  #root {
+    min-height: 100vh;
+  }
 }
 
 @layer components {
   .app-shell {
-    @apply min-h-screen bg-ink text-parchment;
+    @apply min-h-screen text-parchment;
+    background:
+      radial-gradient(circle at top left, rgb(var(--color-glow) / 0.08), transparent 28%),
+      linear-gradient(180deg, rgb(var(--color-ink)), rgb(var(--color-backdrop)));
   }
 
   .topbar {
     @apply sticky top-0 z-50;
-    background: rgb(var(--color-ink-1));
+    background: rgb(var(--color-ink-1) / 0.88);
     border-bottom: 1px solid rgb(var(--color-ink-3) / 0.8);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 10px 30px rgb(var(--reader-shadow) / 0.05);
   }
 
   .topbar-static {
@@ -119,9 +156,10 @@
 
   .input-field {
     @apply w-full rounded-lg px-4 py-3 text-sm font-body;
-    background: rgb(var(--color-ink-1));
+    background: rgb(var(--color-ink-1) / 0.92);
     border: 1px solid rgb(var(--color-ink-3) / 0.9);
     color: rgb(var(--color-parchment));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
   }
 
   .input-field::placeholder {
@@ -132,25 +170,28 @@
     outline: none;
     border-color: rgb(var(--color-accent) / 0.9);
     box-shadow:
-      0 0 0 4px rgb(var(--color-accent) / 0.14),
-      inset 0 1px 0 rgb(var(--color-parchment) / 0.06);
+      0 0 0 4px rgb(var(--color-accent) / 0.1),
+      0 8px 22px rgb(var(--reader-shadow) / 0.07);
   }
 
   .btn-primary {
     @apply w-full rounded-lg py-3 text-sm font-semibold tracking-[0.02em] font-body disabled:opacity-40 disabled:cursor-not-allowed;
-    background: rgb(var(--color-accent));
-    color: rgb(246 250 248);
+    background: linear-gradient(180deg, rgb(var(--color-accent-light)), rgb(var(--color-accent)));
+    color: rgb(246 248 252);
+    box-shadow: 0 10px 24px rgb(var(--color-accent-dim) / 0.16);
   }
 
   .btn-primary:hover {
-    background: rgb(var(--color-accent-light));
+    background: linear-gradient(180deg, rgb(var(--color-accent-light)), rgb(var(--color-accent-dim)));
   }
 
   .card {
     @apply rounded-xl;
-    background: rgb(var(--color-ink-1));
+    background: linear-gradient(180deg, rgb(var(--color-ink-1) / 0.98), rgb(var(--color-ink-1) / 0.9));
     border: 1px solid rgb(var(--color-ink-3) / 0.95);
-    box-shadow: 0 2px 8px rgb(15 23 42 / 0.04);
+    box-shadow:
+      0 16px 36px rgb(var(--reader-shadow) / 0.07),
+      inset 0 1px 0 rgb(255 255 255 / 0.03);
   }
 
   .divider {
@@ -177,7 +218,7 @@
 
   .theme-toggle {
     @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold font-body;
-    background: rgb(var(--color-ink-2));
+    background: rgb(var(--color-ink-2) / 0.9);
     border: 1px solid rgb(var(--color-ink-3) / 0.9);
     color: rgb(var(--color-parchment));
   }
@@ -189,7 +230,9 @@
 
   .auth-shell {
     @apply min-h-screen flex items-center justify-center px-4 relative;
-    background: rgb(var(--color-backdrop));
+    background:
+      radial-gradient(circle at top, rgb(var(--color-glow) / 0.14), transparent 32%),
+      linear-gradient(180deg, rgb(var(--color-backdrop)), rgb(var(--color-ink)));
   }
 
   .chapter-content img,
@@ -208,16 +251,148 @@
   }
 
   .chapter-content p {
-    color: rgb(var(--color-parchment));
+    color: rgb(var(--reader-text));
   }
 
   .reader-surface {
-    background: rgb(var(--color-ink-1));
+    background:
+      linear-gradient(180deg, rgb(var(--reader-paper)), rgb(var(--reader-paper) / 0.98));
+    border-color: rgb(var(--reader-paper-edge) / 0.9);
+    box-shadow:
+      0 24px 60px rgb(var(--reader-shadow) / 0.12),
+      inset 0 1px 0 rgb(255 255 255 / 0.04);
   }
 
   .theme-dark .reader-surface {
-    background: rgb(15 23 42);
-    border-color: rgb(var(--color-ink-3) / 0.9);
+    background:
+      linear-gradient(180deg, rgb(var(--reader-paper)), rgb(var(--color-ink-1)));
+    border-color: rgb(var(--reader-paper-edge) / 0.9);
+  }
+
+  .reader-wrap {
+    max-width: 76ch;
+  }
+
+  .reader-header {
+    background:
+      linear-gradient(180deg, rgb(var(--color-ink-1) / 0.96), rgb(var(--color-ink-1) / 0.88));
+  }
+
+  .reader-content {
+    font-family: var(--font-reading);
+    color: rgb(var(--reader-text));
+    font-size: clamp(1.02rem, 0.85vw + 0.88rem, 1.18rem);
+    line-height: 1.88;
+    letter-spacing: -0.002em;
+    word-break: break-word;
+    text-wrap: pretty;
+  }
+
+  .reader-font-serif {
+    font-family: Georgia, 'Times New Roman', serif;
+    letter-spacing: 0.002em;
+  }
+
+  .reader-font-sans {
+    font-family: var(--font-ui);
+    letter-spacing: -0.002em;
+  }
+
+  .reader-size-sm {
+    font-size: clamp(0.96rem, 0.68vw + 0.84rem, 1.04rem);
+    line-height: 1.78;
+  }
+
+  .reader-size-md {
+    font-size: clamp(1.02rem, 0.85vw + 0.88rem, 1.18rem);
+    line-height: 1.88;
+  }
+
+  .reader-size-lg {
+    font-size: clamp(1.12rem, 1.05vw + 0.95rem, 1.3rem);
+    line-height: 1.96;
+  }
+
+  .reader-content h1,
+  .reader-content h2,
+  .reader-content h3,
+  .reader-content h4 {
+    font-family: var(--font-display);
+    color: rgb(var(--reader-text));
+    line-height: 1.28;
+    margin-top: 1.7em;
+    margin-bottom: 0.72em;
+    letter-spacing: -0.022em;
+  }
+
+  .reader-content a {
+    color: rgb(var(--color-accent-dim));
+    text-decoration: underline;
+    text-decoration-color: rgb(var(--color-accent) / 0.45);
+    text-underline-offset: 0.18em;
+  }
+
+  .reader-content blockquote {
+    margin: 1.6em 0;
+    padding: 0.4em 0 0.4em 1.1em;
+    border-left: 2px solid rgb(var(--color-accent) / 0.45);
+    color: rgb(var(--reader-muted));
+    font-style: italic;
+  }
+
+  .reader-content hr {
+    border: 0;
+    height: 1px;
+    margin: 2.2em 0;
+    background: linear-gradient(90deg, transparent, rgb(var(--reader-paper-edge) / 0.9), transparent);
+  }
+
+  .reader-content img,
+  .reader-content iframe,
+  .reader-content table,
+  .reader-content pre {
+    border-radius: 16px;
+    border: 1px solid rgb(var(--reader-paper-edge) / 0.7);
+  }
+
+  .reader-content pre {
+    padding: 1rem 1.1rem;
+    background: rgb(var(--color-ink-2) / 0.45);
+  }
+
+  .reader-meta {
+    color: rgb(var(--reader-muted));
+  }
+
+  .reader-actions button,
+  .reader-actions a {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  }
+
+  .reader-popover {
+    backdrop-filter: blur(18px);
+    background: linear-gradient(180deg, rgb(var(--color-ink-1) / 0.98), rgb(var(--color-ink-1) / 0.94));
+    box-shadow:
+      0 18px 38px rgb(var(--reader-shadow) / 0.14),
+      inset 0 1px 0 rgb(255 255 255 / 0.03);
+  }
+
+  .reader-menu-item {
+    @apply rounded-lg px-3 py-2 text-xs font-semibold text-parchment-muted transition-colors font-body;
+  }
+
+  .reader-menu-item:hover {
+    background: rgb(var(--color-ink-2));
+    color: rgb(var(--color-parchment));
+  }
+
+  .reader-menu-item-danger {
+    color: rgb(248 113 113);
+  }
+
+  .reader-menu-item-danger:hover {
+    background: rgb(127 29 29 / 0.14);
+    color: rgb(252 165 165);
   }
 
   .animate-delay-1 { animation-delay: 0.1s; animation-fill-mode: both; }
