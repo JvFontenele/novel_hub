@@ -18,6 +18,13 @@ export async function collectSourceJob(job: Job<CollectSourceJobData>) {
   let chaptersNew = 0;
 
   try {
+    const [{ existingChapters }] = await sql<{ existingChapters: number }[]>`
+      SELECT COUNT(*)::int AS "existingChapters"
+      FROM chapters
+      WHERE source_id = ${sourceId}
+    `;
+
+    const shouldNotifyNewChapters = existingChapters > 0;
     const parsed = await connector.fetchNovelData(source.url);
 
     chaptersFound = parsed.chapters.length;
@@ -61,36 +68,36 @@ export async function collectSourceJob(job: Job<CollectSourceJobData>) {
       if (result.length > 0) {
         chaptersNew++;
 
-        // Create domain event
-        const [event] = await sql`
-          INSERT INTO events (novel_id, source_id, type, payload)
-          VALUES (
-            ${source.novel_id},
-            ${sourceId},
-            'NEW_CHAPTER',
-            ${sql.json({
-              chapterId: result[0].id,
-              chapterNumber: chapter.chapterNumber,
-              chapterTitle: chapter.title,
-              chapterUrl: chapter.url,
-            })}
-          )
-          RETURNING id
-        `;
+        if (shouldNotifyNewChapters) {
+          const [event] = await sql`
+            INSERT INTO events (novel_id, source_id, type, payload)
+            VALUES (
+              ${source.novel_id},
+              ${sourceId},
+              'NEW_CHAPTER',
+              ${sql.json({
+                chapterId: result[0].id,
+                chapterNumber: chapter.chapterNumber,
+                chapterTitle: chapter.title,
+                chapterUrl: chapter.url,
+              })}
+            )
+            RETURNING id
+          `;
 
-        // Notify all subscribers
-        await sql`
-          INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
-          SELECT
-            s.user_id,
-            ${source.novel_id},
-            ${event.id},
-            'NEW_CHAPTER',
-            'Novo capítulo disponível',
-            CONCAT('Capítulo ', ${chapter.chapterNumber}::text, COALESCE(' - ' || ${chapter.title}, ''))
-          FROM subscriptions s
-          WHERE s.novel_id = ${source.novel_id}
-        `;
+          await sql`
+            INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
+            SELECT
+              s.user_id,
+              ${source.novel_id},
+              ${event.id},
+              'NEW_CHAPTER',
+              'Novo capítulo disponível',
+              CONCAT('Capítulo ', ${chapter.chapterNumber}::text, COALESCE(' - ' || ${chapter.title}, ''))
+            FROM subscriptions s
+            WHERE s.novel_id = ${source.novel_id}
+          `;
+        }
       }
     }
 

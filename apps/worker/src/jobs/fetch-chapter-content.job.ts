@@ -11,6 +11,10 @@ interface ChapterRow {
   content: string | null;
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function fetchChapterContentJob(job: Job<FetchChapterContentJobData>) {
   const { novelId, chapterId, requestedByUserId } = job.data;
 
@@ -36,6 +40,11 @@ export async function fetchChapterContentJob(job: Job<FetchChapterContentJobData
   }
 
   try {
+    if (/novelbin\.com/i.test(chapter.url)) {
+      const attemptOffset = Math.max(0, job.attemptsMade);
+      await wait(1_250 + attemptOffset * 1_000);
+    }
+
     const content = await fetchChapterContent(chapter.url);
 
     const savedRows = await sql`
@@ -59,21 +68,54 @@ export async function fetchChapterContentJob(job: Job<FetchChapterContentJobData
     const totalAttempts = job.opts.attempts ?? 1;
     const isFinalAttempt = job.attemptsMade + 1 >= totalAttempts;
 
-    if (isFinalAttempt && requestedByUserId) {
+    if (isFinalAttempt) {
       const chapterLabel = chapter.title
         ? `Capítulo ${chapter.chapterNumber} - ${chapter.title}`
         : `Capítulo ${chapter.chapterNumber}`;
 
-      await sql`
-        INSERT INTO notifications (user_id, novel_id, type, title, body)
+      const [event] = await sql`
+        INSERT INTO events (novel_id, type, payload)
         VALUES (
-          ${requestedByUserId},
           ${novelId},
           'SOURCE_FAILED',
-          'Erro ao buscar conteúdo do capítulo',
-          ${`${chapterLabel}: ${errorMessage}`}
+          ${sql.json({
+            chapterId,
+            chapterNumber: chapter.chapterNumber,
+            chapterTitle: chapter.title,
+            chapterUrl: chapter.url,
+            errorMessage,
+            phase: 'FETCH_CHAPTER_CONTENT',
+          })}
         )
+        RETURNING id
       `;
+
+      if (requestedByUserId) {
+        await sql`
+          INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
+          VALUES (
+            ${requestedByUserId},
+            ${novelId},
+            ${event.id},
+            'SOURCE_FAILED',
+            'Erro ao buscar conteúdo do capítulo',
+            ${`${chapterLabel}: ${errorMessage}`}
+          )
+        `;
+      } else {
+        await sql`
+          INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
+          SELECT
+            s.user_id,
+            ${novelId},
+            ${event.id},
+            'SOURCE_FAILED',
+            'Erro ao buscar conteúdo do capítulo',
+            ${`${chapterLabel}: ${errorMessage}`}
+          FROM subscriptions s
+          WHERE s.novel_id = ${novelId}
+        `;
+      }
     }
 
     throw err;

@@ -15,6 +15,16 @@ function resolveExecutablePath(): string | null {
   return null;
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface FetchHtmlWithBrowserOptions {
+  waitForSelectors?: string[];
+  waitAfterLoadMs?: number;
+  maxAttempts?: number;
+}
+
 export async function launchBrowser() {
   const candidates = [
     resolveExecutablePath() ?? undefined,
@@ -48,7 +58,15 @@ export async function launchBrowser() {
   );
 }
 
-export async function fetchHtmlWithBrowser(url: string): Promise<string> {
+export async function fetchHtmlWithBrowser(
+  url: string,
+  options: FetchHtmlWithBrowserOptions = {},
+): Promise<string> {
+  const {
+    waitForSelectors = [],
+    waitAfterLoadMs = 2_500,
+    maxAttempts = 3,
+  } = options;
   const browser = await launchBrowser();
 
   try {
@@ -57,23 +75,54 @@ export async function fetchHtmlWithBrowser(url: string): Promise<string> {
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
       viewport: { width: 1440, height: 1600 },
       locale: 'en-US',
+      extraHTTPHeaders: {
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
     });
 
     try {
       const page = await context.newPage();
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      });
 
-      await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
-      await page
-        .waitForFunction(
-          "!document.title.includes('Just a moment') && !document.body.innerText.includes('Enable JavaScript and cookies to continue')",
-          undefined,
-          { timeout: 20_000 },
-        )
-        .catch(() => undefined);
+      let lastHtml = '';
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+        await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
 
-      const content = await page.content();
-      return content;
+        for (const selector of waitForSelectors) {
+          await page.waitForSelector(selector, { timeout: 12_000 }).catch(() => undefined);
+        }
+
+        await page
+          .waitForFunction(
+            "() => !document.title.includes('Just a moment') && !document.body.innerText.includes('Enable JavaScript and cookies to continue')",
+            undefined,
+            { timeout: 20_000 },
+          )
+          .catch(() => undefined);
+
+        if (waitAfterLoadMs > 0) {
+          await wait(waitAfterLoadMs + (attempt - 1) * 1_500);
+        }
+
+        lastHtml = await page.content();
+        const blocked = /Just a moment\.\.\.|Enable JavaScript and cookies to continue/i.test(lastHtml);
+        if (!blocked) {
+          return lastHtml;
+        }
+
+        if (attempt < maxAttempts) {
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 45_000 }).catch(() => undefined);
+          await wait(2_000 * attempt);
+        }
+      }
+
+      return lastHtml;
     } finally {
       await context.close();
     }

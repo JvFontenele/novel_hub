@@ -122,6 +122,14 @@ function isCloudflareBlock(html: string): boolean {
   return /Just a moment\.\.\.|Enable JavaScript and cookies to continue/i.test(html);
 }
 
+const NOVELBIN_CHAPTER_CONTENT_SELECTORS = [
+  '#chr-content',
+  '.chr-content',
+  '#chapter-content',
+  '.chapter-content',
+  '.reading-content',
+];
+
 async function fetchAccessibleHtml(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: {
@@ -138,7 +146,11 @@ async function fetchAccessibleHtml(url: string): Promise<string> {
     return html;
   }
 
-  const browserHtml = await fetchHtmlWithBrowser(`${url}#tab-chapters-title`);
+  const browserHtml = await fetchHtmlWithBrowser(`${url}#tab-chapters-title`, {
+    waitForSelectors: ['a[href*="/chapter-"]'],
+    waitAfterLoadMs: 3_000,
+    maxAttempts: 3,
+  });
   if (isCloudflareBlock(browserHtml)) {
     throw new Error('NovelBin remained behind Cloudflare even in the browser-backed fetcher.');
   }
@@ -147,22 +159,30 @@ async function fetchAccessibleHtml(url: string): Promise<string> {
 }
 
 async function fetchChapterHtml(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-    signal: AbortSignal.timeout(20_000),
-    redirect: 'follow',
-  });
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(20_000),
+      redirect: 'follow',
+    });
 
-  const html = await response.text();
-  if (response.ok && !isCloudflareBlock(html) && /#chr-content/i.test(html)) {
-    return html;
+    const html = await response.text();
+    if (response.ok && !isCloudflareBlock(html) && /(?:#chr-content|class=["'][^"']*(?:chr-content|chapter-content|reading-content))/i.test(html)) {
+      return html;
+    }
+  } catch {
+    // Fall back to the browser-backed fetcher below.
   }
 
-  const browserHtml = await fetchHtmlWithBrowser(url);
+  const browserHtml = await fetchHtmlWithBrowser(url, {
+    waitForSelectors: NOVELBIN_CHAPTER_CONTENT_SELECTORS,
+    waitAfterLoadMs: 4_000,
+    maxAttempts: 4,
+  });
   if (isCloudflareBlock(browserHtml)) {
     throw new Error('NovelBin remained behind Cloudflare even in the browser-backed fetcher.');
   }
