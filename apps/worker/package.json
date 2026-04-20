@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/main.ts",
     "build": "tsc",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "retry:failed": "tsx --env-file=../../.env src/scripts/retry-failed-jobs.ts",
+    "retry:failed:all": "tsx --env-file=../../.env src/scripts/retry-failed-jobs.ts all"
   },
   "dependencies": {
     "@novel-hub/scraping": "workspace:*",

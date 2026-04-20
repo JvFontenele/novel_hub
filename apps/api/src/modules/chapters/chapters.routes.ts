@@ -19,7 +19,12 @@ import {
   queueAllChapterContentResponseSchema,
   queueChapterContentResponseSchema,
 } from '../../openapi/schemas.js';
-import { enqueueFetchChapterContent } from '../../queue/producer.js';
+import {
+  enqueueFetchChapterContent,
+  getChapterContentJobId,
+  getManualChapterContentJobId,
+  hasPendingChapterContentJob,
+} from '../../queue/producer.js';
 
 export async function chaptersRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { novelId: string }; Querystring: { page?: number; pageSize?: number; order?: 'asc' | 'desc' } }>(
@@ -70,10 +75,27 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ message: 'Nenhum capítulo encontrado para esta novel.' });
       }
 
+      const chaptersToQueue = (
+        await Promise.all(
+          chapters.map(async (chapter) => {
+            if (chapter.hasContent) {
+              return null;
+            }
+
+            const hasPendingJob = await hasPendingChapterContentJob(chapter.chapterId);
+            if (hasPendingJob) {
+              return null;
+            }
+
+            return chapter;
+          }),
+        )
+      ).filter((chapter): chapter is (typeof chapters)[number] => chapter !== null);
+
       await Promise.all(
-        chapters.map((chapter) =>
+        chaptersToQueue.map((chapter) =>
           enqueueFetchChapterContent(novelId, chapter.chapterId, {
-            jobId: `chapter-content-${chapter.chapterId}`,
+            jobId: getChapterContentJobId(chapter.chapterId),
             requestedByUserId: request.user.sub,
           }),
         ),
@@ -81,7 +103,7 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
 
       return reply.status(202).send({
         queued: true,
-        totalChapters: chapters.length,
+        totalChapters: chaptersToQueue.length,
       });
     },
   );
@@ -111,6 +133,7 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
       }
 
       await enqueueFetchChapterContent(novelId, chapterId, {
+        jobId: getManualChapterContentJobId(chapterId),
         requestedByUserId: request.user.sub,
       });
 
@@ -147,6 +170,7 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
 
       await clearChapterContent(chapterId, novelId);
       await enqueueFetchChapterContent(novelId, chapterId, {
+        jobId: getManualChapterContentJobId(chapterId),
         requestedByUserId: request.user.sub,
       });
 

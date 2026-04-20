@@ -17,6 +17,8 @@ const collectorQueue = new Queue(QUEUE_NAMES.COLLECTOR, {
   },
 });
 
+const PENDING_CHAPTER_JOB_STATES = new Set(['waiting', 'active', 'delayed', 'prioritized', 'waiting-children']);
+
 interface EnqueueCollectOptions {
   delayMs?: number;
   jobId?: string;
@@ -41,12 +43,30 @@ interface EnqueueFetchChapterContentOptions {
   requestedByUserId?: string;
 }
 
+export function getChapterContentJobId(chapterId: string) {
+  return `chapter-content-${chapterId}`;
+}
+
+export function getManualChapterContentJobId(chapterId: string) {
+  return `${getChapterContentJobId(chapterId)}-manual-${Date.now()}`;
+}
+
+export async function hasPendingChapterContentJob(chapterId: string) {
+  const job = await collectorQueue.getJob(getChapterContentJobId(chapterId));
+  if (!job) {
+    return false;
+  }
+
+  const state = await job.getState();
+  return PENDING_CHAPTER_JOB_STATES.has(state);
+}
+
 export async function enqueueFetchChapterContent(
   novelId: string,
   chapterId: string,
   options: EnqueueFetchChapterContentOptions = {},
 ) {
-  const { jobId = `chapter-content-${chapterId}`, requestedByUserId } = options;
+  const { jobId = getChapterContentJobId(chapterId), requestedByUserId } = options;
 
   return collectorQueue.add(
     JOB_NAMES.FETCH_CHAPTER_CONTENT,
