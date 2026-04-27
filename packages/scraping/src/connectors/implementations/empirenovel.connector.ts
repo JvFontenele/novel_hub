@@ -287,6 +287,7 @@ function extractDivContent(html: string, openTag: RegExp): string | null {
 
 function extractChapterContent(html: string): string {
   const selectors = [
+    /<div[^>]+id=["']read-novel["'][^>]*>/i,
     /<div[^>]+id=["']chapter-content["'][^>]*>/i,
     /<div[^>]+class=["'][^"']*\bchapter-content\b[^"']*["'][^>]*>/i,
     /<div[^>]+class=["'][^"']*\breading-content\b[^"']*["'][^>]*>/i,
@@ -373,6 +374,7 @@ export class EmpireNovelConnector implements Connector {
 
   async fetchChapterContent(url: string): Promise<string> {
     const html = await fetchAccessibleHtml(url, [
+      '#read-novel',
       '#chapter-content',
       '.chapter-content',
       '.reading-content',
