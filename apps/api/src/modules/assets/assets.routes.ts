@@ -7,6 +7,7 @@ const allowedHosts = new Set([
   'cc-cdnintserviceimg.webnovel.com',
   'webbanner.webnovel.com',
   'images.novelbin.com',
+  'www.empirenovel.com',
 ]);
 
 function getCoverReferer(hostname: string): string {
@@ -18,7 +19,26 @@ function getCoverReferer(hostname: string): string {
     return 'https://novelbin.com/';
   }
 
+  if (hostname === 'www.empirenovel.com') {
+    return 'https://www.empirenovel.com/';
+  }
+
   return 'https://novelbin.com/';
+}
+
+function getCoverHeaders(hostname: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'User-Agent': process.env.SCRAPER_USER_AGENT
+      || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+    Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+    Referer: getCoverReferer(hostname),
+  };
+
+  if (hostname === 'www.empirenovel.com' && process.env.SCRAPER_COOKIES_EMPIRENOVEL_COM) {
+    headers.Cookie = process.env.SCRAPER_COOKIES_EMPIRENOVEL_COM;
+  }
+
+  return headers;
 }
 
 const proxyCoverSchema = z.object({
@@ -66,11 +86,7 @@ export async function assetsRoutes(fastify: FastifyInstance) {
       const parsedUrl = new URL(url);
 
       const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-          Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-          Referer: getCoverReferer(parsedUrl.hostname),
-        },
+        headers: getCoverHeaders(parsedUrl.hostname),
         signal: AbortSignal.timeout(20_000),
       });
 

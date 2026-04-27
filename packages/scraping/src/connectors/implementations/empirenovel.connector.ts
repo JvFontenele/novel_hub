@@ -31,7 +31,7 @@ function extractMeta(html: string, name: string): string | null {
 }
 
 function stripTags(value: string): string {
-  return decodeHtml(value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')).trim();
+  return decodeHtml(value.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 }
 
 function resolveEmpireUrl(href: string): string {
@@ -138,8 +138,9 @@ function parseChapters(html: string, novelUrl: string): ParsedChapter[] {
   while ((match = anchorPattern.exec(html)) !== null) {
     const href = decodeHtml(match[1]).trim();
     const url = resolveEmpireUrl(href);
-    const title = stripTags(match[2]);
-    const chapterNumber = parseChapterNumber(title, url);
+    const rawTitle = stripTags(match[2]);
+    const title = rawTitle.replace(/[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}/, '').replace(/\s+/g, ' ').trim();
+    const chapterNumber = parseChapterNumber(rawTitle, url);
 
     if (chapterNumber === null) {
       continue;
