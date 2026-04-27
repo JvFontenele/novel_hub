@@ -61,6 +61,11 @@ function resolveUserDataDir(customUserDataDir?: string): string {
     ?? join(tmpdir(), 'novel-hub-browser-profile');
 }
 
+function resolveUserAgent(): string {
+  return getEnv().SCRAPER_USER_AGENT
+    ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36';
+}
+
 function envKeyForHost(hostname: string): string {
   return `SCRAPER_COOKIES_${hostname.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
 }
@@ -134,8 +139,7 @@ export async function fetchHtmlWithBrowser(
 
   async function createContext() {
     const contextOptions = {
-      userAgent:
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+      userAgent: resolveUserAgent(),
       viewport: { width: 1440, height: 1600 },
       locale: 'en-US',
       timezoneId: 'America/New_York',
