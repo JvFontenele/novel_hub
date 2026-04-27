@@ -153,6 +153,11 @@ function isCloudflareBlock(html: string): boolean {
   return /Just a moment\.\.\.|Enable JavaScript and cookies to continue/i.test(html);
 }
 
+function isCloudflareErrorPage(html: string): boolean {
+  return /Web server is returning an unknown error|Error code 520|cloudflare/i.test(html)
+    && !/<a[^>]+href=["'][^"']*chapter/i.test(html);
+}
+
 async function fetchAccessibleHtml(url: string, waitForSelectors: string[]): Promise<string> {
   try {
     const response = await fetch(url, {
@@ -166,7 +171,7 @@ async function fetchAccessibleHtml(url: string, waitForSelectors: string[]): Pro
     });
 
     const html = await response.text();
-    if (response.ok && !isCloudflareBlock(html)) {
+    if (response.ok && !isCloudflareBlock(html) && !isCloudflareErrorPage(html)) {
       return html;
     }
   } catch {
@@ -182,6 +187,10 @@ async function fetchAccessibleHtml(url: string, waitForSelectors: string[]): Pro
 
   if (isCloudflareBlock(browserHtml)) {
     throw new Error('EmpireNovel remained behind Cloudflare even in the browser-backed fetcher.');
+  }
+
+  if (isCloudflareErrorPage(browserHtml)) {
+    throw new Error('EmpireNovel returned a Cloudflare 520 error page instead of the novel page.');
   }
 
   return browserHtml;
@@ -278,6 +287,11 @@ export class EmpireNovelConnector implements Connector {
   async fetchNovelData(url: string): Promise<ParsedNovelData> {
     const normalizedUrl = this.normalizeUrl(url);
     const html = await fetchAccessibleHtml(normalizedUrl, ['a[href*="/novel/"][href*="chapter"]']);
+    const chapters = parseChapters(html, normalizedUrl);
+
+    if (chapters.length === 0) {
+      throw new Error('EmpireNovel novel page did not expose any chapters.');
+    }
 
     return {
       title: extractTitle(html),
@@ -285,7 +299,7 @@ export class EmpireNovelConnector implements Connector {
       synopsis: extractSynopsis(html),
       author: extractAuthor(html),
       status: parseStatus(html),
-      chapters: parseChapters(html, normalizedUrl),
+      chapters,
     };
   }
 
