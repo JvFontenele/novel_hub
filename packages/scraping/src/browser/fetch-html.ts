@@ -61,6 +61,44 @@ function resolveUserDataDir(customUserDataDir?: string): string {
     ?? join(tmpdir(), 'novel-hub-browser-profile');
 }
 
+function envKeyForHost(hostname: string): string {
+  return `SCRAPER_COOKIES_${hostname.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
+}
+
+function getCookieHeaderForUrl(url: string): string | null {
+  const env = getEnv();
+  const hostname = new URL(url).hostname;
+  const rootHostname = hostname.replace(/^www\./i, '');
+
+  return env[envKeyForHost(hostname)]
+    ?? env[envKeyForHost(rootHostname)]
+    ?? env.SCRAPER_COOKIES
+    ?? null;
+}
+
+function parseCookieHeader(url: string, cookieHeader: string) {
+  const parsedUrl = new URL(url);
+  return cookieHeader
+    .split(';')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const separatorIndex = entry.indexOf('=');
+      if (separatorIndex <= 0) {
+        return null;
+      }
+
+      return {
+        name: entry.slice(0, separatorIndex).trim(),
+        value: entry.slice(separatorIndex + 1).trim(),
+        domain: parsedUrl.hostname,
+        path: '/',
+        secure: parsedUrl.protocol === 'https:',
+      };
+    })
+    .filter((cookie): cookie is NonNullable<typeof cookie> => cookie !== null);
+}
+
 export async function launchBrowser() {
   const candidates = getExecutableCandidates();
 
@@ -160,6 +198,11 @@ export async function fetchHtmlWithBrowser(
   const browserSession = await createContext();
 
   try {
+      const cookieHeader = getCookieHeaderForUrl(url);
+      if (cookieHeader) {
+        await browserSession.context.addCookies(parseCookieHeader(url, cookieHeader));
+      }
+
       const page = await browserSession.context.newPage();
       await page.addInitScript(() => {
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
