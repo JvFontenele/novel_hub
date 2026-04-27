@@ -102,7 +102,8 @@ function parseChapterNumber(rawTitle: string, href: string): number | null {
   }
 
   const fromHref = href.match(/\/chapter[-/](\d+(?:\.\d+)?)(?:[-/]|$)/i)
-    ?? href.match(/(?:^|[-/])chapter-(\d+(?:\.\d+)?)(?:[-/]|$)/i);
+    ?? href.match(/(?:^|[-/])chapter-(\d+(?:\.\d+)?)(?:[-/]|$)/i)
+    ?? href.match(/\/novel\/[^/?#]+\/(\d+(?:\.\d+)?)(?:[/?#]|$)/i);
 
   return fromHref ? Number(fromHref[1]) : null;
 }
@@ -120,18 +121,15 @@ function parseChapters(html: string, novelUrl: string): ParsedChapter[] {
   let match: RegExpExecArray | null = null;
   while ((match = anchorPattern.exec(html)) !== null) {
     const href = decodeHtml(match[1]).trim();
-    if (!/chapter/i.test(href) && !/chapter/i.test(match[2])) {
-      continue;
-    }
-
     const url = resolveEmpireUrl(href);
-    if (slug && !new URL(url).pathname.includes(`/novel/${slug}`)) {
-      continue;
-    }
-
     const title = stripTags(match[2]);
     const chapterNumber = parseChapterNumber(title, url);
+
     if (chapterNumber === null) {
+      continue;
+    }
+
+    if (slug && !new URL(url).pathname.includes(`/novel/${slug}`)) {
       continue;
     }
 
@@ -149,13 +147,39 @@ function parseChapters(html: string, novelUrl: string): ParsedChapter[] {
   return [...chapters.values()].sort((left, right) => left.chapterNumber - right.chapterNumber);
 }
 
+function mergeChapters(chapterGroups: ParsedChapter[][]): ParsedChapter[] {
+  const chapters = new Map<string, ParsedChapter>();
+  for (const group of chapterGroups) {
+    for (const chapter of group) {
+      chapters.set(chapter.url, chapter);
+    }
+  }
+
+  return [...chapters.values()].sort((left, right) => left.chapterNumber - right.chapterNumber);
+}
+
+function parseMaxPage(html: string, novelUrl: string): number {
+  const normalizedPath = new URL(novelUrl).pathname;
+  const pageNumbers = [...html.matchAll(/href=["']([^"']+\?page=(\d+)[^"']*)["']/gi)]
+    .map((match) => {
+      try {
+        const url = new URL(decodeHtml(match[1]), EMPIRE_NOVEL_BASE_URL);
+        return url.pathname === normalizedPath ? Number(match[2]) : 1;
+      } catch {
+        return 1;
+      }
+    })
+    .filter((page) => Number.isFinite(page) && page > 1);
+
+  return Math.min(Math.max(1, ...pageNumbers), 200);
+}
+
 function isCloudflareBlock(html: string): boolean {
   return /Just a moment\.\.\.|Enable JavaScript and cookies to continue/i.test(html);
 }
 
 function isCloudflareErrorPage(html: string): boolean {
-  return /Web server is returning an unknown error|Error code 520|cloudflare/i.test(html)
-    && !/<a[^>]+href=["'][^"']*chapter/i.test(html);
+  return /Web server is returning an unknown error|Error code 520/i.test(html);
 }
 
 async function fetchAccessibleHtml(url: string, waitForSelectors: string[]): Promise<string> {
@@ -194,6 +218,25 @@ async function fetchAccessibleHtml(url: string, waitForSelectors: string[]): Pro
   }
 
   return browserHtml;
+}
+
+async function fetchNovelChapterPages(normalizedUrl: string, firstPageHtml: string): Promise<string[]> {
+  const maxPage = parseMaxPage(firstPageHtml, normalizedUrl);
+  if (maxPage <= 1) {
+    return [firstPageHtml];
+  }
+
+  const pages = [firstPageHtml];
+  for (let page = 2; page <= maxPage; page++) {
+    const url = `${normalizedUrl}?page=${page}`;
+    pages.push(await fetchAccessibleHtml(url, [
+      'a.chapter_link',
+      'a[href*="/novel/"]',
+      '.chapter',
+    ]));
+  }
+
+  return pages;
 }
 
 function extractDivContent(html: string, openTag: RegExp): string | null {
@@ -286,8 +329,13 @@ export class EmpireNovelConnector implements Connector {
 
   async fetchNovelData(url: string): Promise<ParsedNovelData> {
     const normalizedUrl = this.normalizeUrl(url);
-    const html = await fetchAccessibleHtml(normalizedUrl, ['a[href*="/novel/"][href*="chapter"]']);
-    const chapters = parseChapters(html, normalizedUrl);
+    const html = await fetchAccessibleHtml(normalizedUrl, [
+      'a.chapter_link',
+      'a[href*="/novel/"]',
+      '.chapter',
+    ]);
+    const chapterPages = await fetchNovelChapterPages(normalizedUrl, html);
+    const chapters = mergeChapters(chapterPages.map((pageHtml) => parseChapters(pageHtml, normalizedUrl)));
 
     if (chapters.length === 0) {
       throw new Error('EmpireNovel novel page did not expose any chapters.');
