@@ -52,6 +52,7 @@ export function decodeHtml(value: string): string {
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
     .replace(/&#x2F;/g, '/')
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
 }

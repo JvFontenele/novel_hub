@@ -4,6 +4,22 @@ import { decodeHtml } from './generic.connector.js';
 
 const EMPIRE_NOVEL_HOSTS = ['empirenovel.com', 'www.empirenovel.com'];
 const EMPIRE_NOVEL_BASE_URL = 'https://www.empirenovel.com';
+const CHAPTER_PAGE_FETCH_CONCURRENCY = 4;
+
+function getScraperHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'User-Agent': process.env.SCRAPER_USER_AGENT
+      || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+  };
+
+  if (process.env.SCRAPER_COOKIES_EMPIRENOVEL_COM) {
+    headers.Cookie = process.env.SCRAPER_COOKIES_EMPIRENOVEL_COM;
+  }
+
+  return headers;
+}
 
 function extractMeta(html: string, name: string): string | null {
   const pattern = new RegExp(
@@ -185,11 +201,7 @@ function isCloudflareErrorPage(html: string): boolean {
 async function fetchAccessibleHtml(url: string, waitForSelectors: string[]): Promise<string> {
   try {
     const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+      headers: getScraperHeaders(),
       signal: AbortSignal.timeout(20_000),
       redirect: 'follow',
     });
@@ -227,13 +239,20 @@ async function fetchNovelChapterPages(normalizedUrl: string, firstPageHtml: stri
   }
 
   const pages = [firstPageHtml];
-  for (let page = 2; page <= maxPage; page++) {
-    const url = `${normalizedUrl}?page=${page}`;
-    pages.push(await fetchAccessibleHtml(url, [
-      'a.chapter_link',
-      'a[href*="/novel/"]',
-      '.chapter',
-    ]));
+  const pageNumbers = Array.from({ length: maxPage - 1 }, (_, index) => index + 2);
+
+  for (let index = 0; index < pageNumbers.length; index += CHAPTER_PAGE_FETCH_CONCURRENCY) {
+    const batch = pageNumbers.slice(index, index + CHAPTER_PAGE_FETCH_CONCURRENCY);
+    const batchPages = await Promise.all(batch.map((page) => {
+      const url = `${normalizedUrl}?page=${page}`;
+      return fetchAccessibleHtml(url, [
+        'a.chapter_link',
+        'a[href*="/novel/"]',
+        '.chapter',
+      ]);
+    }));
+
+    pages.push(...batchPages);
   }
 
   return pages;
