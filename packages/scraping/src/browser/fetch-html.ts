@@ -1,4 +1,6 @@
 import { chromium } from 'playwright-core';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 type ProcessEnvMap = Record<string, string | undefined>;
 
@@ -23,10 +25,20 @@ interface FetchHtmlWithBrowserOptions {
   waitForSelectors?: string[];
   waitAfterLoadMs?: number;
   maxAttempts?: number;
+  usePersistentContext?: boolean;
+  userDataDir?: string;
 }
 
-export async function launchBrowser() {
-  const candidates = [
+const browserLaunchArgs = [
+  '--disable-blink-features=AutomationControlled',
+  '--disable-dev-shm-usage',
+  '--disable-infobars',
+  '--no-first-run',
+  '--no-default-browser-check',
+];
+
+function getExecutableCandidates() {
+  return [
     resolveExecutablePath() ?? undefined,
     undefined,
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -40,6 +52,17 @@ export async function launchBrowser() {
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
   ];
+}
+
+function resolveUserDataDir(customUserDataDir?: string): string {
+  const env = getEnv();
+  return customUserDataDir
+    ?? env.PLAYWRIGHT_USER_DATA_DIR
+    ?? join(tmpdir(), 'novel-hub-browser-profile');
+}
+
+export async function launchBrowser() {
+  const candidates = getExecutableCandidates();
 
   let lastError: unknown = null;
   for (const executablePath of candidates) {
@@ -47,6 +70,7 @@ export async function launchBrowser() {
       return await chromium.launch({
         headless: true,
         executablePath,
+        args: browserLaunchArgs,
       });
     } catch (error) {
       lastError = error;
@@ -66,27 +90,81 @@ export async function fetchHtmlWithBrowser(
     waitForSelectors = [],
     waitAfterLoadMs = 2_500,
     maxAttempts = 3,
+    usePersistentContext = false,
+    userDataDir,
   } = options;
-  const browser = await launchBrowser();
 
-  try {
-    const context = await browser.newContext({
+  async function createContext() {
+    const contextOptions = {
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
       viewport: { width: 1440, height: 1600 },
       locale: 'en-US',
+      timezoneId: 'America/New_York',
       extraHTTPHeaders: {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
         'Cache-Control': 'no-cache',
         Pragma: 'no-cache',
       },
-    });
+    };
 
-    try {
-      const page = await context.newPage();
+    if (!usePersistentContext) {
+      const browser = await launchBrowser();
+      const context = await browser.newContext(contextOptions);
+      return {
+        context,
+        close: async () => {
+          await context.close();
+          await browser.close();
+        },
+      };
+    }
+
+    const candidates = getExecutableCandidates();
+    let lastError: unknown = null;
+    for (const executablePath of candidates) {
+      try {
+        const context = await chromium.launchPersistentContext(
+          resolveUserDataDir(userDataDir),
+          {
+            ...contextOptions,
+            headless: true,
+            executablePath,
+            args: browserLaunchArgs,
+          },
+        );
+
+        return {
+          context,
+          close: async () => {
+            await context.close();
+          },
+        };
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    const browser = await launchBrowser();
+    const context = await browser.newContext(contextOptions);
+    return {
+      context,
+      close: async () => {
+        await context.close();
+        await browser.close();
+      },
+    };
+  }
+
+  const browserSession = await createContext();
+
+  try {
+      const page = await browserSession.context.newPage();
       await page.addInitScript(() => {
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
       });
 
       let lastHtml = '';
@@ -123,10 +201,7 @@ export async function fetchHtmlWithBrowser(
       }
 
       return lastHtml;
-    } finally {
-      await context.close();
-    }
   } finally {
-    await browser.close();
+    await browserSession.close();
   }
 }

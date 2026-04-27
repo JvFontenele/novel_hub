@@ -1,6 +1,6 @@
 import { decodeHtml } from './generic.connector.js';
 import type { Connector, ParsedChapter, ParsedNovelData } from '../connector.interface.js';
-import { fetchHtmlWithBrowser, launchBrowser } from '../../browser/fetch-html.js';
+import { fetchHtmlWithBrowser } from '../../browser/fetch-html.js';
 
 const WEBNOVEL_HOSTS = ['webnovel.com', 'www.webnovel.com'];
 
@@ -139,6 +139,93 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+function extractDivContent(html: string, openTag: RegExp): string | null {
+  const startMatch = openTag.exec(html);
+  if (!startMatch) return null;
+
+  let depth = 1;
+  let pos = startMatch.index + startMatch[0].length;
+
+  while (pos < html.length && depth > 0) {
+    const openIdx = html.indexOf('<div', pos);
+    const closeIdx = html.indexOf('</div', pos);
+
+    if (closeIdx === -1) break;
+
+    if (openIdx !== -1 && openIdx < closeIdx) {
+      depth++;
+      pos = openIdx + 4;
+    } else {
+      depth--;
+      if (depth === 0) return html.slice(startMatch.index + startMatch[0].length, closeIdx);
+      pos = closeIdx + 6;
+    }
+  }
+
+  return null;
+}
+
+function extractChapterContent(html: string): string {
+  const selectors = [
+    /<div[^>]+class=["'][^"']*\bcha-content\b[^"']*["'][^>]*>/i,
+    /<div[^>]+class=["'][^"']*\bchapter_content\b[^"']*["'][^>]*>/i,
+    /<div[^>]+class=["'][^"']*\bcha-words\b[^"']*["'][^>]*>/i,
+  ];
+
+  let raw: string | null = null;
+  for (const selector of selectors) {
+    raw = extractDivContent(html, selector);
+    if (raw) break;
+  }
+
+  if (!raw) {
+    throw new Error('Webnovel chapter content container not found on the page.');
+  }
+
+  const paragraphPattern = /<p[^>]*class=["'][^"']*\bcha-paragraph\b[^"']*["'][^>]*>([\s\S]*?)<\/p>/gi;
+  const paragraphs: string[] = [];
+  let match: RegExpExecArray | null = null;
+
+  while ((match = paragraphPattern.exec(raw)) !== null) {
+    const cleaned = match[1]
+      .replace(/<i[\s\S]*?<\/i>/gi, '')
+      .replace(/<span[^>]+class=["'][^"']*(?:para-comment-num|tag-num|j_open_para_comment|j_para_comment_count)[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<(?!\/?(?:em|strong|i|b)\b)[^>]+>/gi, '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n[ \t]+/g, '\n')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+
+    if (cleaned) {
+      paragraphs.push(cleaned);
+    }
+  }
+
+  const content = paragraphs.length > 0
+    ? paragraphs
+    : raw
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .split(/<\/p>/i)
+      .map((part) => part.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+
+  if (content.join('').length < 100) {
+    throw new Error('Webnovel chapter content extraction yielded too little text.');
+  }
+
+  return content
+    .map((paragraph) =>
+      `<p>${escapeHtml(decodeHtml(paragraph))
+        .replace(/&lt;(\/?(?:em|strong|i|b))&gt;/g, '<$1>')
+        .replace(/\n/g, '<br />')}</p>`,
+    )
+    .join('\n');
+}
+
 function extractCoverUrl(html: string): string | null {
   const imageMatch = html.match(/<img[^>]+src="([^"]*bookcover[^"]+)"/i);
   if (imageMatch) {
@@ -202,85 +289,18 @@ export class WebnovelConnector implements Connector {
   }
 
   async fetchChapterContent(url: string): Promise<string> {
-    const browser = await launchBrowser();
+    const html = await fetchHtmlWithBrowser(url, {
+      waitForSelectors: ['.chapter_content, .cha-content, .cha-words'],
+      waitAfterLoadMs: 3_000,
+      maxAttempts: 4,
+      usePersistentContext: true,
+    });
 
-    try {
-      const context = await browser.newContext({
-        userAgent:
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-        viewport: { width: 1440, height: 1600 },
-        locale: 'en-US',
-      });
-
-      try {
-        const page = await context.newPage();
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-        await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => undefined);
-        await page.waitForSelector('.chapter_content, .cha-content, .cha-words', { timeout: 20_000 });
-
-        const content = await page.evaluate(() => {
-          const paragraphNodes = Array.from(
-            document.querySelectorAll<HTMLElement>('.cha-content .cha-paragraph, .chapter_content .cha-paragraph, .cha-words .cha-paragraph'),
-          );
-
-          const cleanedParagraphs = paragraphNodes
-            .map((node) => {
-              const clone = node.cloneNode(true) as HTMLElement;
-              clone.querySelectorAll('i, .para-comment-num, .tag-num, .j_open_para_comment, .j_para_comment_count').forEach((el) => el.remove());
-              clone.querySelectorAll('br').forEach((br) => br.replaceWith('\n'));
-
-              const parts = Array.from(clone.childNodes)
-                .map((child) => {
-                  if (child.nodeType === Node.TEXT_NODE) {
-                    return child.textContent ?? '';
-                  }
-
-                  if (!(child instanceof HTMLElement)) {
-                    return '';
-                  }
-
-                  const tag = child.tagName.toLowerCase();
-                  if (tag === 'br') {
-                    return '\n';
-                  }
-
-                  if (tag === 'em' || tag === 'strong' || tag === 'i' || tag === 'b') {
-                    return child.outerHTML;
-                  }
-
-                  return child.textContent ?? '';
-                })
-                .join('')
-                .replace(/\u00a0/g, ' ')
-                .replace(/[ \t]+\n/g, '\n')
-                .replace(/\n[ \t]+/g, '\n')
-                .replace(/[ \t]{2,}/g, ' ')
-                .trim();
-
-              return parts;
-            })
-            .filter((html) => html.length > 0);
-
-          return cleanedParagraphs;
-        });
-
-        if (content.join('').length < 100) {
-          throw new Error('Webnovel chapter content extraction yielded too little text.');
-        }
-
-        return content
-          .map((paragraph) =>
-            `<p>${escapeHtml(paragraph)
-              .replace(/&lt;(\/?(?:em|strong|i|b))&gt;/g, '<$1>')
-              .replace(/\n/g, '<br />')}</p>`,
-          )
-          .join('\n');
-      } finally {
-        await context.close();
-      }
-    } finally {
-      await browser.close();
+    if (isCloudflareBlock(html)) {
+      throw new Error('Webnovel remained behind Cloudflare even in the browser-backed fetcher.');
     }
+
+    return extractChapterContent(html);
   }
 
   private async fetchAccessibleHtml(url: string): Promise<string> {
@@ -302,7 +322,12 @@ export class WebnovelConnector implements Connector {
       }
     }
 
-    const browserHtml = await fetchHtmlWithBrowser(url);
+    const browserHtml = await fetchHtmlWithBrowser(url, {
+      waitForSelectors: ['.lst-chapter, li a[href*="/book/"], a[href*="/book/"]'],
+      waitAfterLoadMs: 3_000,
+      maxAttempts: 4,
+      usePersistentContext: true,
+    });
     if (isCloudflareBlock(browserHtml)) {
       throw new Error('Webnovel remained behind Cloudflare even in the browser-backed fetcher.');
     }

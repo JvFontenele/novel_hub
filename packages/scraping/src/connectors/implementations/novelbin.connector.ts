@@ -1,4 +1,4 @@
-import { fetchHtmlWithBrowser, launchBrowser } from '../../browser/fetch-html.js';
+import { fetchHtmlWithBrowser } from '../../browser/fetch-html.js';
 import type { Connector, ParsedChapter, ParsedNovelData } from '../connector.interface.js';
 import { decodeHtml } from './generic.connector.js';
 
@@ -150,6 +150,7 @@ async function fetchAccessibleHtml(url: string): Promise<string> {
     waitForSelectors: ['a[href*="/chapter-"]'],
     waitAfterLoadMs: 3_000,
     maxAttempts: 3,
+    usePersistentContext: true,
   });
   if (isCloudflareBlock(browserHtml)) {
     throw new Error('NovelBin remained behind Cloudflare even in the browser-backed fetcher.');
@@ -182,6 +183,7 @@ async function fetchChapterHtml(url: string): Promise<string> {
     waitForSelectors: NOVELBIN_CHAPTER_CONTENT_SELECTORS,
     waitAfterLoadMs: 4_000,
     maxAttempts: 4,
+    usePersistentContext: true,
   });
   if (isCloudflareBlock(browserHtml)) {
     throw new Error('NovelBin remained behind Cloudflare even in the browser-backed fetcher.');
