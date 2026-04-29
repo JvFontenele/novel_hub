@@ -24,6 +24,10 @@ function wait(ms: number) {
 
 interface FetchHtmlWithBrowserOptions {
   waitForSelectors?: string[];
+  waitForStableSelector?: string;
+  stableSelectorMinCount?: number;
+  stableSelectorIdleMs?: number;
+  stableSelectorTimeoutMs?: number;
   waitAfterLoadMs?: number;
   cloudflareWaitMs?: number;
   maxAttempts?: number;
@@ -117,6 +121,10 @@ export async function fetchHtmlWithBrowser(
 ): Promise<string> {
   const {
     waitForSelectors = [],
+    waitForStableSelector,
+    stableSelectorMinCount = 1,
+    stableSelectorIdleMs = 4_000,
+    stableSelectorTimeoutMs = 45_000,
     waitAfterLoadMs = 2_500,
     cloudflareWaitMs = 30_000,
     maxAttempts = 3,
@@ -209,6 +217,42 @@ export async function fetchHtmlWithBrowser(
 
         for (const selector of waitForSelectors) {
           await page.waitForSelector(selector, { timeout: 12_000 }).catch(() => undefined);
+        }
+
+        if (waitForStableSelector) {
+          await page
+            .evaluate(() => {
+              delete (window as Window & {
+                __novelHubStableSelectorState?: { count: number; since: number };
+              }).__novelHubStableSelectorState;
+            })
+            .catch(() => undefined);
+          await page
+            .waitForFunction(
+              ({ selector, minCount, idleMs }) => {
+                const win = window as Window & {
+                  __novelHubStableSelectorState?: { count: number; since: number };
+                };
+                const now = Date.now();
+                const count = document.querySelectorAll(selector).length;
+                const state = win.__novelHubStableSelectorState ?? { count: -1, since: now };
+
+                if (state.count !== count) {
+                  win.__novelHubStableSelectorState = { count, since: now };
+                  return false;
+                }
+
+                win.__novelHubStableSelectorState = state;
+                return count >= minCount && now - state.since >= idleMs;
+              },
+              {
+                selector: waitForStableSelector,
+                minCount: stableSelectorMinCount,
+                idleMs: stableSelectorIdleMs,
+              },
+              { timeout: stableSelectorTimeoutMs },
+            )
+            .catch(() => undefined);
         }
 
         await page
