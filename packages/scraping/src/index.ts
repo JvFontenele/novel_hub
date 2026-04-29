@@ -5,3 +5,4 @@ export * from './connectors/implementations/generic.connector.js';
 export * from './connectors/implementations/novelbin.connector.js';
 export * from './connectors/implementations/webnovel.connector.js';
 export * from './browser/fetch-html.js';
+export * from './runtime-config.js';

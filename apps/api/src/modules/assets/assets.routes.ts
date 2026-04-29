@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { coverQuerySchema, errorResponseSchema } from '../../openapi/schemas.js';
+import { sql } from '../../db/client.js';
 
 const allowedHosts = new Set([
   'book-pic.webnovel.com',
@@ -26,15 +27,35 @@ function getCoverReferer(hostname: string): string {
   return 'https://novelbin.com/';
 }
 
-function getCoverHeaders(hostname: string): Record<string, string> {
+async function getScraperSettings(hostname: string): Promise<{ cookies: string | null; userAgent: string | null }> {
+  const normalized = hostname.trim().toLowerCase();
+  const withoutWww = normalized.replace(/^www\./, '');
+  const [settings] = await sql`
+    SELECT cookies, user_agent AS "userAgent"
+    FROM scraper_settings
+    WHERE hostname IN ${sql([normalized, withoutWww])}
+    ORDER BY CASE WHEN hostname = ${normalized} THEN 0 ELSE 1 END
+    LIMIT 1
+  `;
+
+  return settings
+    ? { cookies: settings.cookies ?? null, userAgent: settings.userAgent ?? null }
+    : { cookies: null, userAgent: null };
+}
+
+async function getCoverHeaders(hostname: string): Promise<Record<string, string>> {
+  const settings = await getScraperSettings(hostname);
   const headers: Record<string, string> = {
-    'User-Agent': process.env.SCRAPER_USER_AGENT
-      || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+    'User-Agent': settings.userAgent
+      ?? process.env.SCRAPER_USER_AGENT
+      ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
     Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
     Referer: getCoverReferer(hostname),
   };
 
-  if (hostname === 'www.empirenovel.com' && process.env.SCRAPER_COOKIES_EMPIRENOVEL_COM) {
+  if (settings.cookies) {
+    headers.Cookie = settings.cookies;
+  } else if (hostname === 'www.empirenovel.com' && process.env.SCRAPER_COOKIES_EMPIRENOVEL_COM) {
     headers.Cookie = process.env.SCRAPER_COOKIES_EMPIRENOVEL_COM;
   }
 
@@ -86,7 +107,7 @@ export async function assetsRoutes(fastify: FastifyInstance) {
       const parsedUrl = new URL(url);
 
       const response = await fetch(url, {
-        headers: getCoverHeaders(parsedUrl.hostname),
+        headers: await getCoverHeaders(parsedUrl.hostname),
         signal: AbortSignal.timeout(20_000),
       });
 

@@ -1,6 +1,7 @@
 import { chromium } from 'playwright-core';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { getScraperCookieHeaderForUrl, getScraperUserAgent } from '../runtime-config.js';
 
 type ProcessEnvMap = Record<string, string | undefined>;
 
@@ -24,6 +25,7 @@ function wait(ms: number) {
 interface FetchHtmlWithBrowserOptions {
   waitForSelectors?: string[];
   waitAfterLoadMs?: number;
+  cloudflareWaitMs?: number;
   maxAttempts?: number;
   usePersistentContext?: boolean;
   userDataDir?: string;
@@ -61,26 +63,6 @@ function resolveUserDataDir(customUserDataDir?: string): string {
     ?? join(tmpdir(), 'novel-hub-browser-profile');
 }
 
-function resolveUserAgent(): string {
-  return getEnv().SCRAPER_USER_AGENT
-    ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36';
-}
-
-function envKeyForHost(hostname: string): string {
-  return `SCRAPER_COOKIES_${hostname.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
-}
-
-function getCookieHeaderForUrl(url: string): string | null {
-  const env = getEnv();
-  const hostname = new URL(url).hostname;
-  const rootHostname = hostname.replace(/^www\./i, '');
-
-  return env[envKeyForHost(hostname)]
-    ?? env[envKeyForHost(rootHostname)]
-    ?? env.SCRAPER_COOKIES
-    ?? null;
-}
-
 function parseCookieHeader(url: string, cookieHeader: string) {
   const parsedUrl = new URL(url);
   return cookieHeader
@@ -102,6 +84,10 @@ function parseCookieHeader(url: string, cookieHeader: string) {
       };
     })
     .filter((cookie): cookie is NonNullable<typeof cookie> => cookie !== null);
+}
+
+function isCloudflareBlock(html: string): boolean {
+  return /Just a moment\.\.\.|Enable JavaScript and cookies to continue|cf-challenge|challenge-platform/i.test(html);
 }
 
 export async function launchBrowser() {
@@ -132,14 +118,16 @@ export async function fetchHtmlWithBrowser(
   const {
     waitForSelectors = [],
     waitAfterLoadMs = 2_500,
+    cloudflareWaitMs = 30_000,
     maxAttempts = 3,
     usePersistentContext = false,
     userDataDir,
   } = options;
 
   async function createContext() {
+    const hostname = new URL(url).hostname;
     const contextOptions = {
-      userAgent: resolveUserAgent(),
+      userAgent: await getScraperUserAgent(hostname),
       viewport: { width: 1440, height: 1600 },
       locale: 'en-US',
       timezoneId: 'America/New_York',
@@ -202,7 +190,7 @@ export async function fetchHtmlWithBrowser(
   const browserSession = await createContext();
 
   try {
-      const cookieHeader = getCookieHeaderForUrl(url);
+      const cookieHeader = await getScraperCookieHeaderForUrl(url);
       if (cookieHeader) {
         await browserSession.context.addCookies(parseCookieHeader(url, cookieHeader));
       }
@@ -227,16 +215,22 @@ export async function fetchHtmlWithBrowser(
           .waitForFunction(
             "() => !document.title.includes('Just a moment') && !document.body.innerText.includes('Enable JavaScript and cookies to continue')",
             undefined,
-            { timeout: 20_000 },
+            { timeout: cloudflareWaitMs },
           )
           .catch(() => undefined);
+
+        lastHtml = await page.content();
+        if (isCloudflareBlock(lastHtml)) {
+          await wait(cloudflareWaitMs + attempt * 2_000);
+          await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+        }
 
         if (waitAfterLoadMs > 0) {
           await wait(waitAfterLoadMs + (attempt - 1) * 1_500);
         }
 
         lastHtml = await page.content();
-        const blocked = /Just a moment\.\.\.|Enable JavaScript and cookies to continue/i.test(lastHtml);
+        const blocked = isCloudflareBlock(lastHtml);
         if (!blocked) {
           return lastHtml;
         }

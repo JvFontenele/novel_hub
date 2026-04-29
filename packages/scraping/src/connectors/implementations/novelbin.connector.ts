@@ -1,4 +1,5 @@
 import { fetchHtmlWithBrowser } from '../../browser/fetch-html.js';
+import { getScraperCookieHeaderForUrl, getScraperUserAgent } from '../../runtime-config.js';
 import type { Connector, ParsedChapter, ParsedNovelData } from '../connector.interface.js';
 import { decodeHtml } from './generic.connector.js';
 
@@ -130,13 +131,23 @@ const NOVELBIN_CHAPTER_CONTENT_SELECTORS = [
   '.reading-content',
 ];
 
+async function getScraperHeaders(url: string): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'User-Agent': await getScraperUserAgent(new URL(url).hostname),
+    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+  };
+  const cookieHeader = await getScraperCookieHeaderForUrl(url);
+  if (cookieHeader) {
+    headers.Cookie = cookieHeader;
+  }
+
+  return headers;
+}
+
 async function fetchAccessibleHtml(url: string): Promise<string> {
   const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
+    headers: await getScraperHeaders(url),
     signal: AbortSignal.timeout(20_000),
     redirect: 'follow',
   });
@@ -162,11 +173,7 @@ async function fetchAccessibleHtml(url: string): Promise<string> {
 async function fetchChapterHtml(url: string): Promise<string> {
   try {
     const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+      headers: await getScraperHeaders(url),
       signal: AbortSignal.timeout(20_000),
       redirect: 'follow',
     });

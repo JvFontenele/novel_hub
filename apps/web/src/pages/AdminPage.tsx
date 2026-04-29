@@ -1,5 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@/api/admin'
+import { useState } from 'react'
+import type { FormEvent } from 'react'
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -17,6 +19,11 @@ const STATUS_STYLES = {
 }
 
 export function AdminPage() {
+  const queryClient = useQueryClient()
+  const [hostname, setHostname] = useState('www.empirenovel.com')
+  const [cookies, setCookies] = useState('')
+  const [userAgent, setUserAgent] = useState('')
+
   const { data: runs, isLoading: runsLoading } = useQuery({
     queryKey: ['admin', 'runs'],
     queryFn: adminApi.collectorRuns,
@@ -29,12 +36,116 @@ export function AdminPage() {
     refetchInterval: 30_000,
   })
 
+  const { data: scraperSettings, isLoading: scraperSettingsLoading } = useQuery({
+    queryKey: ['admin', 'scraper-settings'],
+    queryFn: adminApi.scraperSettings,
+  })
+
+  const saveScraperSettingMutation = useMutation({
+    mutationFn: adminApi.saveScraperSetting,
+    onSuccess: () => {
+      setCookies('')
+      queryClient.invalidateQueries({ queryKey: ['admin', 'scraper-settings'] })
+    },
+  })
+
+  function handleSaveScraperSetting(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    saveScraperSettingMutation.mutate({
+      hostname,
+      cookies,
+      userAgent: userAgent || null,
+    })
+  }
+
   return (
     <div className="animate-fade-in space-y-10">
       <div>
         <h1 className="font-display text-2xl text-parchment font-light">Painel Admin</h1>
         <p className="text-xs text-parchment-muted mt-1 font-body">Monitoramento de coleta em tempo real</p>
       </div>
+
+      <section>
+        <p className="text-[11px] font-body font-medium text-parchment-muted uppercase tracking-widest mb-4">
+          Cookies do scraper
+        </p>
+
+        <div className="card p-5 space-y-5">
+          <form className="space-y-4" onSubmit={handleSaveScraperSetting}>
+            <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_1fr]">
+              <label className="space-y-2">
+                <span className="text-xs text-parchment-muted font-body">Domínio</span>
+                <select
+                  className="input"
+                  value={hostname}
+                  onChange={(event) => setHostname(event.target.value)}
+                >
+                  <option value="www.empirenovel.com">www.empirenovel.com</option>
+                  <option value="empirenovel.com">empirenovel.com</option>
+                  <option value="novelbin.com">novelbin.com</option>
+                  <option value="www.novelbin.com">www.novelbin.com</option>
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs text-parchment-muted font-body">User-Agent opcional</span>
+                <input
+                  className="input"
+                  value={userAgent}
+                  onChange={(event) => setUserAgent(event.target.value)}
+                  placeholder="Deixe vazio para usar o padrão"
+                />
+              </label>
+            </div>
+
+            <label className="space-y-2 block">
+              <span className="text-xs text-parchment-muted font-body">Cookie header</span>
+              <textarea
+                className="input min-h-32 font-mono text-xs"
+                value={cookies}
+                onChange={(event) => setCookies(event.target.value)}
+                placeholder="cf_clearance=...; connect.sid=...; outros=..."
+              />
+            </label>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-parchment-muted font-body">
+                Cole no formato de header: <span className="font-mono">nome=valor; nome2=valor2</span>. A alteração vale no próximo job, sem rebuild.
+              </p>
+              <button className="btn btn-primary" type="submit" disabled={saveScraperSettingMutation.isPending}>
+                {saveScraperSettingMutation.isPending ? 'Salvando...' : 'Salvar cookies'}
+              </button>
+            </div>
+          </form>
+
+          {scraperSettingsLoading ? (
+            <div className="h-16 animate-pulse rounded-lg bg-ink-2" />
+          ) : !scraperSettings?.length ? (
+            <p className="text-sm text-parchment-muted font-body">Nenhum cookie configurado ainda.</p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {scraperSettings.map((setting) => (
+                <div key={setting.hostname} className="rounded-lg border border-ink-3 bg-ink-2/50 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-parchment font-body">{setting.hostname}</p>
+                      <p className="mt-1 text-xs text-parchment-muted font-mono">
+                        {setting.hasCookies ? setting.cookiesPreview : 'sem cookies'}
+                      </p>
+                    </div>
+                    <span className={`badge ${setting.hasCookies ? 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60' : 'bg-amber-950/60 text-amber-400 border-amber-900/60'}`}>
+                      {setting.hasCookies ? 'ativo' : 'vazio'}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-[10px] text-parchment-muted font-body">
+                    Atualizado {formatDate(setting.updatedAt)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Collector Runs */}
       <section>

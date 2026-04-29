@@ -1,4 +1,5 @@
 import { fetchHtmlWithBrowser } from '../../browser/fetch-html.js';
+import { getScraperCookieHeaderForUrl, getScraperUserAgent } from '../../runtime-config.js';
 import type { Connector, ParsedChapter, ParsedNovelData } from '../connector.interface.js';
 import { decodeHtml } from './generic.connector.js';
 
@@ -6,16 +7,17 @@ const EMPIRE_NOVEL_HOSTS = ['empirenovel.com', 'www.empirenovel.com'];
 const EMPIRE_NOVEL_BASE_URL = 'https://www.empirenovel.com';
 const CHAPTER_PAGE_FETCH_CONCURRENCY = 4;
 
-function getScraperHeaders(): Record<string, string> {
+async function getScraperHeaders(url: string): Promise<Record<string, string>> {
+  const hostname = new URL(url).hostname;
   const headers: Record<string, string> = {
-    'User-Agent': process.env.SCRAPER_USER_AGENT
-      || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+    'User-Agent': await getScraperUserAgent(hostname),
     Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
   };
 
-  if (process.env.SCRAPER_COOKIES_EMPIRENOVEL_COM) {
-    headers.Cookie = process.env.SCRAPER_COOKIES_EMPIRENOVEL_COM;
+  const cookieHeader = await getScraperCookieHeaderForUrl(url);
+  if (cookieHeader) {
+    headers.Cookie = cookieHeader;
   }
 
   return headers;
@@ -202,7 +204,7 @@ function isCloudflareErrorPage(html: string): boolean {
 async function fetchAccessibleHtml(url: string, waitForSelectors: string[]): Promise<string> {
   try {
     const response = await fetch(url, {
-      headers: getScraperHeaders(),
+      headers: await getScraperHeaders(url),
       signal: AbortSignal.timeout(20_000),
       redirect: 'follow',
     });

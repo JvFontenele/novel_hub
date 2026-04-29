@@ -21,3 +21,17 @@ export interface SourceFailureView {
   consecutiveFailures: number;
   lastCheckedAt: string | null;
 }
+
+export interface ScraperSettingView {
+  hostname: string;
+  hasCookies: boolean;
+  cookiesPreview: string | null;
+  userAgent: string | null;
+  updatedAt: string;
+}
+
+export interface UpsertScraperSettingInput {
+  hostname: string;
+  cookies?: string | null;
+  userAgent?: string | null;
+}

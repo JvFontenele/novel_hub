@@ -1,5 +1,10 @@
 import { api } from './client'
-import type { CollectorRunView, SourceFailureView } from '@novel-hub/contracts'
+import type {
+  CollectorRunView,
+  ScraperSettingView,
+  SourceFailureView,
+  UpsertScraperSettingInput,
+} from '@novel-hub/contracts'
 
 export const adminApi = {
   collectorRuns: (): Promise<CollectorRunView[]> =>
@@ -7,4 +12,10 @@ export const adminApi = {
 
   sourceFailures: (): Promise<SourceFailureView[]> =>
     api.get<{ items: SourceFailureView[] }>('/admin/source-failures').then((r) => r.data.items),
+
+  scraperSettings: (): Promise<ScraperSettingView[]> =>
+    api.get<{ items: ScraperSettingView[] }>('/admin/scraper-settings').then((r) => r.data.items),
+
+  saveScraperSetting: (data: UpsertScraperSettingInput): Promise<ScraperSettingView> =>
+    api.put<ScraperSettingView>('/admin/scraper-settings', data).then((r) => r.data),
 }
