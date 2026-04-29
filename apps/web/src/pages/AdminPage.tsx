@@ -162,6 +162,7 @@ export function AdminPage() {
                       type="button"
                       onClick={() => {
                         setHostname(setting.hostname)
+                        setCookies(setting.cookies ?? '')
                         setUserAgent(setting.userAgent ?? '')
                       }}
                       className="w-full rounded-xl border border-ink-3 bg-ink-1/60 p-4 text-left hover:border-accent/50 hover:bg-ink-1"

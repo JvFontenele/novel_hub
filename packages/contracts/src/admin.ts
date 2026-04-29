@@ -25,6 +25,7 @@ export interface SourceFailureView {
 export interface ScraperSettingView {
   hostname: string;
   hasCookies: boolean;
+  cookies: string | null;
   cookiesPreview: string | null;
   userAgent: string | null;
   updatedAt: string;

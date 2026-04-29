@@ -62,6 +62,7 @@ function mapScraperSetting(row: ScraperSettingRow): ScraperSettingView {
   return {
     hostname: row.hostname,
     hasCookies: Boolean(row.cookies),
+    cookies: row.cookies,
     cookiesPreview: previewCookies(row.cookies),
     userAgent: row.user_agent,
     updatedAt: row.updated_at,

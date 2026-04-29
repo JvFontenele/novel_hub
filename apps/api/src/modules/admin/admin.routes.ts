@@ -20,11 +20,12 @@ const scraperSettingSchema = {
   properties: {
     hostname: { type: 'string' },
     hasCookies: { type: 'boolean' },
+    cookies: { type: 'string', nullable: true },
     cookiesPreview: { type: 'string', nullable: true },
     userAgent: { type: 'string', nullable: true },
     updatedAt: { type: 'string', format: 'date-time' },
   },
-  required: ['hostname', 'hasCookies', 'cookiesPreview', 'userAgent', 'updatedAt'],
+  required: ['hostname', 'hasCookies', 'cookies', 'cookiesPreview', 'userAgent', 'updatedAt'],
 } as const;
 
 export async function adminRoutes(fastify: FastifyInstance) {
