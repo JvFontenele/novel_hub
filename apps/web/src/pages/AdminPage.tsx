@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@/api/admin'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 
 function formatDate(iso: string) {
@@ -43,11 +43,25 @@ export function AdminPage() {
 
   const saveScraperSettingMutation = useMutation({
     mutationFn: adminApi.saveScraperSetting,
-    onSuccess: () => {
-      setCookies('')
+    onSuccess: (setting) => {
+      setHostname(setting.hostname)
+      setCookies(setting.cookies ?? '')
+      setUserAgent(setting.userAgent ?? '')
       queryClient.invalidateQueries({ queryKey: ['admin', 'scraper-settings'] })
     },
   })
+
+  useEffect(() => {
+    const setting = scraperSettings?.find((item) => item.hostname === hostname)
+    if (!setting) {
+      setCookies('')
+      setUserAgent('')
+      return
+    }
+
+    setCookies(setting.cookies ?? '')
+    setUserAgent(setting.userAgent ?? '')
+  }, [hostname, scraperSettings])
 
   function handleSaveScraperSetting(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
