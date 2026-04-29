@@ -66,84 +66,126 @@ export function AdminPage() {
       </div>
 
       <section>
-        <p className="text-[11px] font-body font-medium text-parchment-muted uppercase tracking-widest mb-4">
-          Cookies do scraper
-        </p>
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-body font-medium text-parchment-muted uppercase tracking-widest">
+              Cookies do scraper
+            </p>
+            <p className="mt-1 max-w-2xl text-xs text-parchment-muted font-body">
+              Atualize a sessão dos sites protegidos por Cloudflare. O worker usa estes valores no próximo job, sem rebuild.
+            </p>
+          </div>
+          <span className="badge border-accent/30 bg-accent-muted/50 text-parchment-muted">
+            configuração dinâmica
+          </span>
+        </div>
 
-        <div className="card p-5 space-y-5">
-          <form className="space-y-4" onSubmit={handleSaveScraperSetting}>
-            <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_1fr]">
-              <label className="space-y-2">
-                <span className="text-xs text-parchment-muted font-body">Domínio</span>
-                <select
-                  className="input"
-                  value={hostname}
-                  onChange={(event) => setHostname(event.target.value)}
-                >
-                  <option value="www.empirenovel.com">www.empirenovel.com</option>
-                  <option value="empirenovel.com">empirenovel.com</option>
-                  <option value="novelbin.com">novelbin.com</option>
-                  <option value="www.novelbin.com">www.novelbin.com</option>
-                </select>
-              </label>
+        <div className="card overflow-hidden">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
+            <form className="space-y-5 p-5 sm:p-6" onSubmit={handleSaveScraperSetting}>
+              <div className="grid gap-4 md:grid-cols-[minmax(0,240px)_1fr]">
+                <label className="space-y-2">
+                  <span className="text-xs text-parchment-muted font-body">Domínio</span>
+                  <select
+                    className="input-field"
+                    value={hostname}
+                    onChange={(event) => setHostname(event.target.value)}
+                  >
+                    <option value="www.empirenovel.com">www.empirenovel.com</option>
+                    <option value="empirenovel.com">empirenovel.com</option>
+                    <option value="novelbin.com">novelbin.com</option>
+                    <option value="www.novelbin.com">www.novelbin.com</option>
+                  </select>
+                </label>
 
-              <label className="space-y-2">
-                <span className="text-xs text-parchment-muted font-body">User-Agent opcional</span>
-                <input
-                  className="input"
-                  value={userAgent}
-                  onChange={(event) => setUserAgent(event.target.value)}
-                  placeholder="Deixe vazio para usar o padrão"
+                <label className="space-y-2">
+                  <span className="text-xs text-parchment-muted font-body">User-Agent opcional</span>
+                  <input
+                    className="input-field"
+                    value={userAgent}
+                    onChange={(event) => setUserAgent(event.target.value)}
+                    placeholder="Deixe vazio para usar o padrão"
+                  />
+                </label>
+              </div>
+
+              <label className="space-y-2 block">
+                <span className="text-xs text-parchment-muted font-body">Cookie header</span>
+                <textarea
+                  className="input-field min-h-40 resize-y font-mono text-xs leading-relaxed"
+                  value={cookies}
+                  onChange={(event) => setCookies(event.target.value)}
+                  placeholder="cf_clearance=...; connect.sid=...; outros=..."
                 />
               </label>
-            </div>
 
-            <label className="space-y-2 block">
-              <span className="text-xs text-parchment-muted font-body">Cookie header</span>
-              <textarea
-                className="input min-h-32 font-mono text-xs"
-                value={cookies}
-                onChange={(event) => setCookies(event.target.value)}
-                placeholder="cf_clearance=...; connect.sid=...; outros=..."
-              />
-            </label>
+              <div className="rounded-xl border border-ink-3/80 bg-ink-2/45 px-4 py-3">
+                <p className="text-xs text-parchment-muted font-body">
+                  Formato esperado: <span className="font-mono text-parchment-dim">nome=valor; nome2=valor2</span>
+                </p>
+                <p className="mt-1 text-[11px] text-parchment-muted font-body">
+                  Copie o cabeçalho Cookie do navegador ou junte os cookies principais separados por ponto e vírgula.
+                </p>
+              </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-parchment-muted font-body">
-                Cole no formato de header: <span className="font-mono">nome=valor; nome2=valor2</span>. A alteração vale no próximo job, sem rebuild.
-              </p>
-              <button className="btn btn-primary" type="submit" disabled={saveScraperSettingMutation.isPending}>
-                {saveScraperSettingMutation.isPending ? 'Salvando...' : 'Salvar cookies'}
-              </button>
-            </div>
-          </form>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-parchment-muted font-body">
+                  Salvar substitui o cookie atual desse domínio.
+                </p>
+                <button className="btn-primary sm:w-auto sm:min-w-48 sm:px-6" type="submit" disabled={saveScraperSettingMutation.isPending}>
+                  {saveScraperSettingMutation.isPending ? 'Salvando...' : 'Salvar cookies'}
+                </button>
+              </div>
+            </form>
 
-          {scraperSettingsLoading ? (
-            <div className="h-16 animate-pulse rounded-lg bg-ink-2" />
-          ) : !scraperSettings?.length ? (
-            <p className="text-sm text-parchment-muted font-body">Nenhum cookie configurado ainda.</p>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {scraperSettings.map((setting) => (
-                <div key={setting.hostname} className="rounded-lg border border-ink-3 bg-ink-2/50 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-parchment font-body">{setting.hostname}</p>
-                      <p className="mt-1 text-xs text-parchment-muted font-mono">
-                        {setting.hasCookies ? setting.cookiesPreview : 'sem cookies'}
-                      </p>
-                    </div>
-                    <span className={`badge ${setting.hasCookies ? 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60' : 'bg-amber-950/60 text-amber-400 border-amber-900/60'}`}>
-                      {setting.hasCookies ? 'ativo' : 'vazio'}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-[10px] text-parchment-muted font-body">
-                    Atualizado {formatDate(setting.updatedAt)}
-                  </p>
+            <aside className="border-t border-ink-3/80 bg-ink-2/35 p-5 sm:p-6 lg:border-l lg:border-t-0">
+              <div className="mb-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-parchment-muted font-body">
+                  Configurados
+                </p>
+                <p className="mt-1 text-[11px] text-parchment-muted font-body">
+                  O valor completo não é exibido por segurança.
+                </p>
+              </div>
+
+              {scraperSettingsLoading ? (
+                <div className="h-24 animate-pulse rounded-xl bg-ink-2" />
+              ) : !scraperSettings?.length ? (
+                <div className="rounded-xl border border-dashed border-ink-3 px-4 py-8 text-center">
+                  <p className="text-sm text-parchment-muted font-body">Nenhum cookie configurado ainda.</p>
                 </div>
-              ))}
-            </div>
-          )}
+              ) : (
+                <div className="space-y-3">
+                  {scraperSettings.map((setting) => (
+                    <button
+                      key={setting.hostname}
+                      type="button"
+                      onClick={() => {
+                        setHostname(setting.hostname)
+                        setUserAgent(setting.userAgent ?? '')
+                      }}
+                      className="w-full rounded-xl border border-ink-3 bg-ink-1/60 p-4 text-left hover:border-accent/50 hover:bg-ink-1"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm text-parchment font-body">{setting.hostname}</p>
+                          <p className="mt-1 truncate text-xs text-parchment-muted font-mono">
+                            {setting.hasCookies ? setting.cookiesPreview : 'sem cookies'}
+                          </p>
+                        </div>
+                        <span className={`badge flex-shrink-0 ${setting.hasCookies ? 'bg-emerald-950/60 text-emerald-400 border-emerald-900/60' : 'bg-amber-950/60 text-amber-400 border-amber-900/60'}`}>
+                          {setting.hasCookies ? 'ativo' : 'vazio'}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-[10px] text-parchment-muted font-body">
+                        Atualizado {formatDate(setting.updatedAt)}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </aside>
+          </div>
         </div>
       </section>
 
