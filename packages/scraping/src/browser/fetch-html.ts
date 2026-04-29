@@ -28,6 +28,10 @@ interface FetchHtmlWithBrowserOptions {
   stableSelectorMinCount?: number;
   stableSelectorIdleMs?: number;
   stableSelectorTimeoutMs?: number;
+  incrementalLoadSelector?: string;
+  incrementalLoadMaxRounds?: number;
+  incrementalLoadIdleRounds?: number;
+  incrementalLoadRoundDelayMs?: number;
   waitAfterLoadMs?: number;
   cloudflareWaitMs?: number;
   maxAttempts?: number;
@@ -125,6 +129,10 @@ export async function fetchHtmlWithBrowser(
     stableSelectorMinCount = 1,
     stableSelectorIdleMs = 4_000,
     stableSelectorTimeoutMs = 45_000,
+    incrementalLoadSelector,
+    incrementalLoadMaxRounds = 0,
+    incrementalLoadIdleRounds = 3,
+    incrementalLoadRoundDelayMs = 1_000,
     waitAfterLoadMs = 2_500,
     cloudflareWaitMs = 30_000,
     maxAttempts = 3,
@@ -219,6 +227,54 @@ export async function fetchHtmlWithBrowser(
           await page.waitForSelector(selector, { timeout: 12_000 }).catch(() => undefined);
         }
 
+        await page
+          .waitForFunction(
+            "() => !document.title.includes('Just a moment') && !document.body.innerText.includes('Enable JavaScript and cookies to continue')",
+            undefined,
+            { timeout: cloudflareWaitMs },
+          )
+          .catch(() => undefined);
+
+        if (incrementalLoadSelector && incrementalLoadMaxRounds > 0) {
+          let lastCount = await page.locator(incrementalLoadSelector).count().catch(() => 0);
+          let idleRounds = 0;
+
+          for (let round = 0; round < incrementalLoadMaxRounds && idleRounds < incrementalLoadIdleRounds; round++) {
+            await page
+              .evaluate((selector) => {
+                const elements = Array.from(document.querySelectorAll(selector));
+                const lastElement = elements.at(-1);
+                if (lastElement) {
+                  lastElement.scrollIntoView({ block: 'end' });
+                }
+
+                const scrollingElement = document.scrollingElement ?? document.documentElement;
+                scrollingElement.scrollTop = scrollingElement.scrollHeight;
+                window.scrollTo(0, document.body.scrollHeight);
+
+                // Some sites keep the chapter list inside its own scrollable container.
+                for (const element of Array.from(document.querySelectorAll<HTMLElement>('body *'))) {
+                  if (element.scrollHeight > element.clientHeight + 20) {
+                    element.scrollTop = element.scrollHeight;
+                  }
+                }
+              }, incrementalLoadSelector)
+              .catch(() => undefined);
+
+            await page.mouse.wheel(0, 4_000).catch(() => undefined);
+            await wait(incrementalLoadRoundDelayMs);
+            await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
+
+            const currentCount = await page.locator(incrementalLoadSelector).count().catch(() => lastCount);
+            if (currentCount > lastCount) {
+              lastCount = currentCount;
+              idleRounds = 0;
+            } else {
+              idleRounds++;
+            }
+          }
+        }
+
         if (waitForStableSelector) {
           await page
             .evaluate(() => {
@@ -254,14 +310,6 @@ export async function fetchHtmlWithBrowser(
             )
             .catch(() => undefined);
         }
-
-        await page
-          .waitForFunction(
-            "() => !document.title.includes('Just a moment') && !document.body.innerText.includes('Enable JavaScript and cookies to continue')",
-            undefined,
-            { timeout: cloudflareWaitMs },
-          )
-          .catch(() => undefined);
 
         lastHtml = await page.content();
         if (isCloudflareBlock(lastHtml)) {

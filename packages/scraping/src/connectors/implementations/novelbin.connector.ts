@@ -119,17 +119,6 @@ function parseChapters(html: string): ParsedChapter[] {
   return [...chapters.values()].sort((left, right) => left.chapterNumber - right.chapterNumber);
 }
 
-function hasUsableChapterList(html: string): boolean {
-  const chapters = parseChapters(html);
-  if (chapters.length < 25) {
-    return false;
-  }
-
-  const firstChapter = chapters[0]?.chapterNumber ?? 0;
-  const lastChapter = chapters[chapters.length - 1]?.chapterNumber ?? 0;
-  return firstChapter <= 1 && lastChapter - firstChapter + 1 >= Math.min(chapters.length, 25);
-}
-
 function isCloudflareBlock(html: string): boolean {
   return /Just a moment\.\.\.|Enable JavaScript and cookies to continue/i.test(html);
 }
@@ -157,19 +146,12 @@ async function getScraperHeaders(url: string): Promise<Record<string, string>> {
 }
 
 async function fetchAccessibleHtml(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: await getScraperHeaders(url),
-    signal: AbortSignal.timeout(20_000),
-    redirect: 'follow',
-  });
-
-  const html = await response.text();
-  if (response.ok && !isCloudflareBlock(html) && hasUsableChapterList(html)) {
-    return html;
-  }
-
   const browserHtml = await fetchHtmlWithBrowser(`${url}#tab-chapters-title`, {
     waitForSelectors: ['a[href*="/chapter-"]'],
+    incrementalLoadSelector: 'a[href*="/chapter-"]',
+    incrementalLoadMaxRounds: 90,
+    incrementalLoadIdleRounds: 6,
+    incrementalLoadRoundDelayMs: 1_200,
     waitForStableSelector: 'a[href*="/chapter-"]',
     stableSelectorMinCount: 10,
     stableSelectorIdleMs: 8_000,
