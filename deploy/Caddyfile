@@ -1,0 +1,7 @@
+{$CADDY_HOST} {
+    encode gzip
+
+    reverse_proxy /api/* web:80
+    reverse_proxy /health web:80
+    reverse_proxy * web:80
+}
