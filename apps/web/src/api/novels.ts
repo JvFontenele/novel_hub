@@ -28,6 +28,9 @@ export const novelsApi = {
   list: (): Promise<NovelListItem[]> =>
     api.get<{ items: NovelListItem[] }>('/novels').then((r) => r.data.items),
 
+  library: (): Promise<NovelListItem[]> =>
+    api.get<{ items: NovelListItem[] }>('/novels/library').then((r) => r.data.items),
+
   get: (novelId: string): Promise<NovelDetail> =>
     api.get<NovelDetail>(`/novels/${novelId}`).then((r) => r.data),
 

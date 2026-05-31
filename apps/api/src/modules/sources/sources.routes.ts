@@ -19,11 +19,11 @@ export async function sourcesRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Params: { sourceId: string } }>(
     '/sources/:sourceId',
     {
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authorizeAdmin],
       schema: {
         tags: ['Sources'],
         summary: 'Toggle source monitoring',
-        description: 'Pauses or resumes monitoring for a tracked source.',
+        description: 'Admin-only: pauses or resumes monitoring for a source.',
         security: bearerSecurity,
         params: idParamsSchema('sourceId', 'Source identifier'),
         body: fromZod(patchSourceSchema),
@@ -31,6 +31,7 @@ export async function sourcesRoutes(fastify: FastifyInstance) {
           200: sourceSchema,
           400: errorResponseSchema,
           401: errorResponseSchema,
+          403: errorResponseSchema,
           404: errorResponseSchema,
         },
       },
@@ -55,22 +56,26 @@ export async function sourcesRoutes(fastify: FastifyInstance) {
   fastify.post<{ Params: { sourceId: string } }>(
     '/sources/:sourceId/collect',
     {
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authorizeAdmin],
       schema: {
         tags: ['Sources'],
         summary: 'Trigger source collection',
-        description: 'Queues an immediate collection job for a source owned by the authenticated user.',
+        description: 'Admin-only: queues an immediate collection job for a source.',
         security: bearerSecurity,
         params: idParamsSchema('sourceId', 'Source identifier'),
         response: {
           202: triggerCollectionResponseSchema,
           401: errorResponseSchema,
+          403: errorResponseSchema,
           404: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const result = await sourcesService.triggerCollection(request.params.sourceId, request.user.sub);
+      const result = await sourcesService.triggerCollection(
+        request.params.sourceId,
+        request.user.sub,
+      );
       if (!result) {
         return reply.code(404).send({ message: 'Source not found' });
       }

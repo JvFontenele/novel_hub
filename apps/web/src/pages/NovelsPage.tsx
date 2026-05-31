@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCoverImageUrl, novelsApi } from '@/api/novels'
+import { useAuth } from '@/context/AuthContext'
 import type { NovelListItem } from '@novel-hub/contracts'
 
 function progressPercent(novel: NovelListItem) {
@@ -20,6 +21,7 @@ const STATUS_MAP: Record<NovelListItem['status'], { label: string; cls: string }
 
 export function NovelsPage() {
   const queryClient = useQueryClient()
+  const { isAdmin } = useAuth()
   const [showForm, setShowForm] = useState(false)
   const [sourceUrl, setSourceUrl] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -48,32 +50,39 @@ export function NovelsPage() {
     addMutation.mutate({ sourceUrl, displayName })
   }
 
+  const readingCount = novels?.filter((n) => n.lastReadChapterNumber != null).length ?? 0
+
   return (
     <div className="animate-fade-in">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div className="min-w-0">
-          <h1 className="font-display text-2xl text-parchment font-light">Minhas Novels</h1>
+          <h1 className="font-display text-2xl text-parchment font-light">Catálogo</h1>
           {novels?.length != null && (
             <p className="text-xs text-parchment-muted mt-1 font-body">
-              {novels.length} {novels.length === 1 ? 'novel' : 'novels'} na sua biblioteca
+              {novels.length} {novels.length === 1 ? 'novel disponível' : 'novels disponíveis'}
+              {readingCount > 0 && (
+                <span className="ml-2 text-amber">· {readingCount} em leitura</span>
+              )}
             </p>
           )}
         </div>
-        <button
-          onClick={() => { setShowForm((v) => !v); setFormError('') }}
-          className={`w-full sm:w-auto text-sm font-body font-medium px-4 py-2 rounded-lg border transition-all duration-150 ${
-            showForm
-              ? 'border-ink-4 text-parchment-muted hover:text-parchment'
-              : 'bg-amber text-ink border-amber hover:bg-amber-light'
-          }`}
-        >
-          {showForm ? 'Cancelar' : '+ Adicionar'}
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => { setShowForm((v) => !v); setFormError('') }}
+            className={`w-full sm:w-auto text-sm font-body font-medium px-4 py-2 rounded-lg border transition-all duration-150 ${
+              showForm
+                ? 'border-ink-4 text-parchment-muted hover:text-parchment'
+                : 'bg-amber text-ink border-amber hover:bg-amber-light'
+            }`}
+          >
+            {showForm ? 'Cancelar' : '+ Adicionar'}
+          </button>
+        )}
       </div>
 
-      {/* Add form */}
-      {showForm && (
+      {/* Add form (admin only) */}
+      {isAdmin && showForm && (
         <div className="card p-5 mb-7 animate-fade-up">
           <h2 className="font-display text-base text-parchment font-light mb-4">Nova novel</h2>
 
@@ -142,9 +151,13 @@ export function NovelsPage() {
       ) : !novels?.length ? (
         <div className="text-center py-24">
           <div className="font-display text-6xl mb-5 opacity-30">📖</div>
-          <p className="font-display text-xl text-parchment-dim font-light">Biblioteca vazia</p>
+          <p className="font-display text-xl text-parchment-dim font-light">
+            {isAdmin ? 'Catálogo vazio' : 'Nenhuma novel disponível'}
+          </p>
           <p className="text-parchment-muted text-sm mt-2 font-body">
-            Adicione uma novel para começar a acompanhar
+            {isAdmin
+              ? 'Adicione uma novel para disponibilizá-la no catálogo'
+              : 'Em breve novos títulos serão adicionados'}
           </p>
         </div>
       ) : (
@@ -153,6 +166,7 @@ export function NovelsPage() {
             const pct = progressPercent(novel)
             const st = STATUS_MAP[novel.status]
             const coverImageUrl = getCoverImageUrl(novel.coverUrl)
+            const isReading = novel.lastReadChapterNumber != null
             return (
               <Link
                 key={novel.novelId}
@@ -183,18 +197,24 @@ export function NovelsPage() {
                       {st.label}
                     </span>
 
-                    <div className="mt-3">
-                      <div className="flex justify-between text-[10px] text-parchment-muted mb-1 font-body">
-                        <span>Cap. {novel.lastReadChapterNumber ?? 0}/{novel.lastChapterNumber ?? 0}</span>
-                        <span className="text-amber-light">{pct}%</span>
+                    {isReading ? (
+                      <div className="mt-3">
+                        <div className="flex justify-between text-[10px] text-parchment-muted mb-1 font-body">
+                          <span>Cap. {novel.lastReadChapterNumber ?? 0}/{novel.lastChapterNumber ?? 0}</span>
+                          <span className="text-amber-light">{pct}%</span>
+                        </div>
+                        <div className="h-1 bg-ink-4 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-amber rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-1 bg-ink-4 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-amber rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
+                    ) : (
+                      <p className="mt-3 text-[10px] text-parchment-muted font-body">
+                        {novel.lastChapterNumber ?? 0} capítulos
+                      </p>
+                    )}
                   </div>
                 </div>
               </Link>

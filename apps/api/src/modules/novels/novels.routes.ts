@@ -19,17 +19,18 @@ export async function novelsRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/novels',
     {
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authorizeAdmin],
       schema: {
         tags: ['Novels'],
-        summary: 'Create a novel subscription',
-        description: 'Registers a novel source for the authenticated user and queues collection.',
+        summary: 'Add a novel to the catalog',
+        description: 'Admin-only: registers a novel source and queues the initial collection.',
         security: bearerSecurity,
         body: fromZod(createNovelSchema),
         response: {
           201: createNovelResponseSchema,
           400: errorResponseSchema,
           401: errorResponseSchema,
+          403: errorResponseSchema,
         },
       },
     },
@@ -51,8 +52,29 @@ export async function novelsRoutes(fastify: FastifyInstance) {
       preHandler: [fastify.authenticate],
       schema: {
         tags: ['Novels'],
-        summary: 'List subscribed novels',
-        description: 'Returns the novels tracked by the authenticated user.',
+        summary: 'List all novels (catalog)',
+        description: 'Returns every novel available in the catalog with the authenticated user\'s reading progress.',
+        security: bearerSecurity,
+        response: {
+          200: listResponseSchema(novelListItemSchema),
+          401: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const items = await novelsRepo.listNovels(request.user.sub);
+      return reply.send({ items });
+    },
+  );
+
+  fastify.get(
+    '/novels/library',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['Novels'],
+        summary: 'List reading library',
+        description: 'Returns only the novels the authenticated user has started reading.',
         security: bearerSecurity,
         response: {
           200: listResponseSchema(novelListItemSchema),
@@ -73,7 +95,7 @@ export async function novelsRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Novels'],
         summary: 'Get novel details',
-        description: 'Returns the detailed view for a tracked novel, including sources.',
+        description: 'Returns the detailed view for a novel. Reading progress is included when the user has started reading it.',
         security: bearerSecurity,
         params: idParamsSchema('novelId', 'Novel identifier'),
         response: {
@@ -135,8 +157,8 @@ export async function novelsRoutes(fastify: FastifyInstance) {
       preHandler: [fastify.authenticate],
       schema: {
         tags: ['Novels'],
-        summary: 'Remove a tracked novel',
-        description: 'Removes the novel from the authenticated user library and deletes the novel record when no subscribers remain.',
+        summary: 'Remove novel from reading list',
+        description: 'Removes the novel from the authenticated user\'s reading list. The novel remains in the catalog.',
         security: bearerSecurity,
         params: idParamsSchema('novelId', 'Novel identifier'),
         response: {
@@ -169,7 +191,7 @@ export async function novelsRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Novels'],
         summary: 'List novel events',
-        description: 'Returns recent change events for a tracked novel.',
+        description: 'Returns recent change events for a novel.',
         security: bearerSecurity,
         params: idParamsSchema('novelId', 'Novel identifier'),
         response: {
@@ -179,7 +201,7 @@ export async function novelsRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const items = await novelsRepo.listEventsByNovel(request.params.novelId, request.user.sub);
+      const items = await novelsRepo.listEventsByNovel(request.params.novelId);
       return reply.send({ items });
     },
   );

@@ -18,31 +18,19 @@ export async function createSource(novelId: string, url: string, connectorKey: s
   return source;
 }
 
-export async function findNovelById(novelId: string, userId: string) {
-  const [row] = await sql`
+export async function listNovels(userId: string) {
+  return sql`
     SELECT
       n.id AS "novelId",
       n.title,
       n.cover_url AS "coverUrl",
-      n.synopsis,
-      n.author,
       n.status,
       n.last_chapter_number AS "lastChapterNumber",
-      s.last_read_chapter_number AS "lastReadChapterNumber",
-      json_agg(json_build_object(
-        'sourceId', ns.id,
-        'url', ns.url,
-        'status', ns.status,
-        'monitoringEnabled', ns.monitoring_enabled,
-        'lastCheckedAt', ns.last_checked_at
-      )) AS sources
+      s.last_read_chapter_number AS "lastReadChapterNumber"
     FROM novels n
-    JOIN subscriptions s ON s.novel_id = n.id AND s.user_id = ${userId}
-    LEFT JOIN novel_sources ns ON ns.novel_id = n.id
-    WHERE n.id = ${novelId}
-    GROUP BY n.id, s.last_read_chapter_number
+    LEFT JOIN subscriptions s ON s.novel_id = n.id AND s.user_id = ${userId}
+    ORDER BY n.updated_at DESC
   `;
-  return row ?? null;
 }
 
 export async function listNovelsByUser(userId: string) {
@@ -60,6 +48,36 @@ export async function listNovelsByUser(userId: string) {
   `;
 }
 
+export async function findNovelById(novelId: string, userId: string) {
+  const [row] = await sql`
+    SELECT
+      n.id AS "novelId",
+      n.title,
+      n.cover_url AS "coverUrl",
+      n.synopsis,
+      n.author,
+      n.status,
+      n.last_chapter_number AS "lastChapterNumber",
+      s.last_read_chapter_number AS "lastReadChapterNumber",
+      COALESCE(
+        json_agg(json_build_object(
+          'sourceId', ns.id,
+          'url', ns.url,
+          'status', ns.status,
+          'monitoringEnabled', ns.monitoring_enabled,
+          'lastCheckedAt', ns.last_checked_at
+        ) ORDER BY ns.created_at) FILTER (WHERE ns.id IS NOT NULL),
+        '[]'::json
+      ) AS sources
+    FROM novels n
+    LEFT JOIN subscriptions s ON s.novel_id = n.id AND s.user_id = ${userId}
+    LEFT JOIN novel_sources ns ON ns.novel_id = n.id
+    WHERE n.id = ${novelId}
+    GROUP BY n.id, s.last_read_chapter_number
+  `;
+  return row ?? null;
+}
+
 export async function createSubscription(userId: string, novelId: string) {
   const [sub] = await sql`
     INSERT INTO subscriptions (user_id, novel_id)
@@ -68,6 +86,14 @@ export async function createSubscription(userId: string, novelId: string) {
     RETURNING *
   `;
   return sub;
+}
+
+export async function ensureSubscription(userId: string, novelId: string) {
+  await sql`
+    INSERT INTO subscriptions (user_id, novel_id)
+    VALUES (${userId}, ${novelId})
+    ON CONFLICT (user_id, novel_id) DO NOTHING
+  `;
 }
 
 export async function updateProgress(userId: string, novelId: string, lastReadChapterNumber: number) {
@@ -80,7 +106,7 @@ export async function updateProgress(userId: string, novelId: string, lastReadCh
   return sub ?? null;
 }
 
-export async function listEventsByNovel(novelId: string, userId: string) {
+export async function listEventsByNovel(novelId: string) {
   return sql`
     SELECT
       e.id AS "eventId",
@@ -88,7 +114,6 @@ export async function listEventsByNovel(novelId: string, userId: string) {
       e.payload,
       e.created_at AS "createdAt"
     FROM events e
-    JOIN subscriptions s ON s.novel_id = e.novel_id AND s.user_id = ${userId}
     WHERE e.novel_id = ${novelId}
     ORDER BY e.created_at DESC
     LIMIT 100
@@ -97,24 +122,9 @@ export async function listEventsByNovel(novelId: string, userId: string) {
 
 export async function removeNovelForUser(userId: string, novelId: string) {
   const [subscription] = await sql`
-    WITH deleted_subscription AS (
-      DELETE FROM subscriptions
-      WHERE user_id = ${userId} AND novel_id = ${novelId}
-      RETURNING novel_id
-    ),
-    deleted_novel AS (
-      DELETE FROM novels
-      WHERE id = ${novelId}
-        AND EXISTS (SELECT 1 FROM deleted_subscription)
-        AND NOT EXISTS (
-          SELECT 1
-          FROM subscriptions
-          WHERE novel_id = ${novelId}
-        )
-      RETURNING id
-    )
-    SELECT novel_id AS "novelId"
-    FROM deleted_subscription
+    DELETE FROM subscriptions
+    WHERE user_id = ${userId} AND novel_id = ${novelId}
+    RETURNING novel_id AS "novelId"
   `;
 
   if (!subscription) {
