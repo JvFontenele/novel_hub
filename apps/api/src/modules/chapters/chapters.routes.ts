@@ -6,6 +6,7 @@ import {
   listChapterIdsByNovel,
   listChaptersByNovel,
 } from './chapters.repository.js';
+import { ensureSubscription } from '../novels/novels.repository.js';
 import {
   bearerSecurity,
   chapterContentSchema,
@@ -34,7 +35,7 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Chapters'],
         summary: 'List chapters by novel',
-        description: 'Returns paginated chapter entries for a tracked novel.',
+        description: 'Returns paginated chapter entries for a novel.',
         security: bearerSecurity,
         params: idParamsSchema('novelId', 'Novel identifier'),
         querystring: chapterListQuerySchema,
@@ -54,15 +55,16 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
   fastify.post<{ Params: { novelId: string } }>(
     '/novels/:novelId/chapters/content',
     {
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authorizeAdmin],
       schema: {
         tags: ['Chapters'],
         summary: 'Queue scraping for all chapters',
-        description: 'Queues chapter content scraping jobs for every chapter in the novel.',
+        description: 'Admin-only: queues chapter content scraping jobs for every chapter in the novel.',
         security: bearerSecurity,
         params: idParamsSchema('novelId', 'Novel identifier'),
         response: {
           202: queueAllChapterContentResponseSchema,
+          403: errorResponseSchema,
           404: errorResponseSchema,
         },
       },
@@ -111,15 +113,16 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
   fastify.post<{ Params: { novelId: string; chapterId: string } }>(
     '/novels/:novelId/chapters/:chapterId/content',
     {
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authorizeAdmin],
       schema: {
         tags: ['Chapters'],
         summary: 'Fetch and cache chapter content',
-        description: 'Scrapes chapter content from the source URL and saves it in the database.',
+        description: 'Admin-only: scrapes chapter content from the source URL and saves it in the database.',
         security: bearerSecurity,
         params: chapterParamsSchema,
         response: {
           202: queueChapterContentResponseSchema,
+          403: errorResponseSchema,
           404: errorResponseSchema,
         },
       },
@@ -147,15 +150,16 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
   fastify.post<{ Params: { novelId: string; chapterId: string } }>(
     '/novels/:novelId/chapters/:chapterId/content/reprocess',
     {
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authorizeAdmin],
       schema: {
         tags: ['Chapters'],
         summary: 'Reprocess chapter content',
-        description: 'Clears cached chapter content and queues a fresh scraping job.',
+        description: 'Admin-only: clears cached chapter content and queues a fresh scraping job.',
         security: bearerSecurity,
         params: chapterParamsSchema,
         response: {
           202: queueChapterContentResponseSchema,
+          403: errorResponseSchema,
           404: errorResponseSchema,
         },
       },
@@ -184,15 +188,16 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
   fastify.delete<{ Params: { novelId: string; chapterId: string } }>(
     '/novels/:novelId/chapters/:chapterId/content',
     {
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authorizeAdmin],
       schema: {
         tags: ['Chapters'],
         summary: 'Delete cached chapter content',
-        description: 'Removes the cached content for a chapter without deleting the chapter entry.',
+        description: 'Admin-only: removes the cached content for a chapter without deleting the chapter entry.',
         security: bearerSecurity,
         params: chapterParamsSchema,
         response: {
           200: deleteChapterContentResponseSchema,
+          403: errorResponseSchema,
           404: errorResponseSchema,
         },
       },
@@ -219,7 +224,7 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Chapters'],
         summary: 'Get cached chapter content',
-        description: 'Returns previously fetched chapter content stored in the database.',
+        description: 'Returns previously fetched chapter content. Creates a reading subscription on first successful read.',
         security: bearerSecurity,
         params: chapterParamsSchema,
         response: {
@@ -235,6 +240,8 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
       if (!row || !row.content) {
         return reply.status(404).send({ message: 'Conteúdo ainda não foi buscado para este capítulo.' });
       }
+
+      await ensureSubscription(request.user.sub, novelId);
 
       return reply.send({
         chapterId: row.chapterId,

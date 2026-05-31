@@ -87,8 +87,9 @@ export const userProfileSchema = {
     id: { type: 'string' },
     name: { type: 'string' },
     email: { type: 'string', format: 'email' },
+    role: { type: 'string', enum: ['user', 'admin'] },
   },
-  required: ['id', 'name', 'email'],
+  required: ['id', 'name', 'email', 'role'],
   additionalProperties: false,
 } satisfies JsonSchema;
 

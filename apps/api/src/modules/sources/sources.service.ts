@@ -5,15 +5,15 @@ export async function toggleMonitoring(sourceId: string, monitoringEnabled: bool
   return sourcesRepo.updateSourceMonitoring(sourceId, monitoringEnabled);
 }
 
-export async function triggerCollection(sourceId: string, userId: string) {
-  const source = await sourcesRepo.findSourceByIdForUser(sourceId, userId);
+export async function triggerCollection(sourceId: string, adminUserId: string) {
+  const source = await sourcesRepo.findSourceById(sourceId);
   if (!source) {
     return null;
   }
 
   await enqueueCollect(sourceId, {
     jobId: `${sourceId}-manual-${Date.now()}`,
-    requestedByUserId: userId,
+    requestedByUserId: adminUserId,
   });
 
   return {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { novelsApi } from '@/api/novels'
+import { useAuth } from '@/context/AuthContext'
 import type { ChapterListItem } from '@novel-hub/contracts'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 
@@ -50,6 +51,7 @@ export function ChapterReaderPage() {
   const { novelId, chapterId } = useParams<{ novelId: string; chapterId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { isAdmin } = useAuth()
   const [isQueued, setIsQueued] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [readerFont, setReaderFont] = useState<ReaderFont>(getStoredReaderFont)
@@ -217,19 +219,23 @@ export function ChapterReaderPage() {
 
   if (!currentChapterMeta && !chapter && !isNotFound) return null
 
+  const hasAdminActions = isAdmin && (chapterSourceUrl || hasChapterContent)
+
   return (
     <div className="reader-wrap mx-auto animate-fade-in">
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        title="Excluir conteúdo do capítulo"
-        description="O texto salvo será removido e a leitura deste capítulo ficará indisponível até você buscar novamente."
-        confirmLabel="Excluir conteúdo"
-        cancelLabel="Cancelar"
-        confirmTone="danger"
-        isPending={deleteContentMutation.isPending}
-        onCancel={() => setDeleteDialogOpen(false)}
-        onConfirm={() => deleteContentMutation.mutate()}
-      />
+      {isAdmin && (
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          title="Excluir conteúdo do capítulo"
+          description="O texto salvo será removido e a leitura deste capítulo ficará indisponível até você buscar novamente."
+          confirmLabel="Excluir conteúdo"
+          cancelLabel="Cancelar"
+          confirmTone="danger"
+          isPending={deleteContentMutation.isPending}
+          onCancel={() => setDeleteDialogOpen(false)}
+          onConfirm={() => deleteContentMutation.mutate()}
+        />
+      )}
 
       <div className="card reader-header p-5 sm:p-6 mb-7">
         <div className="flex flex-col gap-4">
@@ -290,59 +296,61 @@ export function ChapterReaderPage() {
                 )}
               </div>
 
-              <div ref={actionsRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActionsOpen((current) => !current)
-                    setSettingsOpen(false)
-                  }}
-                  aria-label="Abrir ações do capítulo"
-                  title="Ações"
-                  className="rounded-lg border border-ink-3 bg-ink-2 px-3 py-2 text-sm font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors font-body"
-                >
-                  ⋯
-                </button>
-                {actionsOpen && (
-                  <div className="reader-popover absolute right-0 top-[calc(100%+0.55rem)] z-20 w-56 rounded-xl border border-ink-3 bg-ink-1 p-2 shadow-xl">
-                    <div className="flex flex-col">
-                      {chapterSourceUrl && (
-                        <a
-                          href={chapterSourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Abrir no site original"
-                          className="reader-menu-item"
+              {hasAdminActions && (
+                <div ref={actionsRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen((current) => !current)
+                      setSettingsOpen(false)
+                    }}
+                    aria-label="Abrir ações do capítulo"
+                    title="Ações"
+                    className="rounded-lg border border-ink-3 bg-ink-2 px-3 py-2 text-sm font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors font-body"
+                  >
+                    ⋯
+                  </button>
+                  {actionsOpen && (
+                    <div className="reader-popover absolute right-0 top-[calc(100%+0.55rem)] z-20 w-56 rounded-xl border border-ink-3 bg-ink-1 p-2 shadow-xl">
+                      <div className="flex flex-col">
+                        {chapterSourceUrl && (
+                          <a
+                            href={chapterSourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Abrir no site original"
+                            className="reader-menu-item"
+                          >
+                            Abrir original
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionsOpen(false)
+                            reprocessMutation.mutate()
+                          }}
+                          disabled={reprocessMutation.isPending}
+                          className="reader-menu-item text-left disabled:opacity-40"
                         >
-                          Abrir original
-                        </a>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActionsOpen(false)
-                          reprocessMutation.mutate()
-                        }}
-                        disabled={reprocessMutation.isPending}
-                        className="reader-menu-item text-left disabled:opacity-40"
-                      >
-                        {reprocessMutation.isPending ? 'Reprocessando...' : 'Reprocessar'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActionsOpen(false)
-                          setDeleteDialogOpen(true)
-                        }}
-                        disabled={deleteContentMutation.isPending || !hasChapterContent}
-                        className="reader-menu-item reader-menu-item-danger text-left disabled:opacity-40"
-                      >
-                        Excluir conteúdo
-                      </button>
+                          {reprocessMutation.isPending ? 'Reprocessando...' : 'Reprocessar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionsOpen(false)
+                            setDeleteDialogOpen(true)
+                          }}
+                          disabled={deleteContentMutation.isPending || !hasChapterContent}
+                          className="reader-menu-item reader-menu-item-danger text-left disabled:opacity-40"
+                        >
+                          Excluir conteúdo
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -369,27 +377,35 @@ export function ChapterReaderPage() {
       ) : (
         <div className="card reader-surface px-6 py-8 sm:px-10 sm:py-11 mb-7">
           <div className="reader-empty-state text-center" style={readerEmptyStateStyle}>
-            <p className="reader-meta font-body text-sm mb-2">
-              {isQueued
-                ? 'O capítulo está sendo processado em segundo plano.'
-                : 'O conteúdo deste capítulo ainda não foi buscado.'}
-            </p>
-            {isQueued && (
-              <p className="text-parchment-muted/80 text-xs font-body mb-6">
-                Esta página atualiza automaticamente quando o worker terminar.
-              </p>
-            )}
-            {!isQueued && <div className="mb-4" />}
-            <button
-              onClick={() => fetchContentMutation.mutate()}
-              disabled={fetchContentMutation.isPending || isQueued}
-              className="btn-primary max-w-xs mx-auto"
-            >
-              {fetchContentMutation.isPending ? 'Enfileirando...' : isQueued ? 'Processando...' : 'Buscar conteúdo agora'}
-            </button>
-            {fetchContentMutation.isError && (
-              <p className="text-red-400 text-sm mt-4 font-body">
-                Erro ao enfileirar conteúdo. Tente novamente.
+            {isAdmin ? (
+              <>
+                <p className="reader-meta font-body text-sm mb-2">
+                  {isQueued
+                    ? 'O capítulo está sendo processado em segundo plano.'
+                    : 'O conteúdo deste capítulo ainda não foi buscado.'}
+                </p>
+                {isQueued && (
+                  <p className="text-parchment-muted/80 text-xs font-body mb-6">
+                    Esta página atualiza automaticamente quando o worker terminar.
+                  </p>
+                )}
+                {!isQueued && <div className="mb-4" />}
+                <button
+                  onClick={() => fetchContentMutation.mutate()}
+                  disabled={fetchContentMutation.isPending || isQueued}
+                  className="btn-primary max-w-xs mx-auto"
+                >
+                  {fetchContentMutation.isPending ? 'Enfileirando...' : isQueued ? 'Processando...' : 'Buscar conteúdo agora'}
+                </button>
+                {fetchContentMutation.isError && (
+                  <p className="text-red-400 text-sm mt-4 font-body">
+                    Erro ao enfileirar conteúdo. Tente novamente.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="reader-meta font-body text-sm">
+                O conteúdo deste capítulo ainda não está disponível.
               </p>
             )}
           </div>

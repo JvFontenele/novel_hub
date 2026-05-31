@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCoverImageUrl, novelsApi, type ChapterOrder } from '@/api/novels'
+import { useAuth } from '@/context/AuthContext'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { AxiosError } from 'axios'
 
@@ -21,6 +22,7 @@ export function NovelDetailPage() {
   const { novelId } = useParams<{ novelId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { isAdmin } = useAuth()
   const [progressInput, setProgressInput] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'chapters' | 'events'>('chapters')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -112,7 +114,7 @@ export function NovelDetailPage() {
     return () => window.clearInterval(intervalId)
   }, [novelId, queryClient, queuedChapterIds.length])
 
-  const deleteNovelMutation = useMutation({
+  const removeFromLibraryMutation = useMutation({
     mutationFn: () => novelsApi.remove(novelId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['novels'] })
@@ -137,6 +139,7 @@ export function NovelDetailPage() {
     <div className="text-center py-24 text-parchment-muted font-body">Novel não encontrada.</div>
   )
 
+  const isReading = novel.lastReadChapterNumber != null
   const pct = novel.lastChapterNumber
     ? Math.min(100, Math.round(((novel.lastReadChapterNumber ?? 0) / novel.lastChapterNumber) * 100))
     : 0
@@ -153,25 +156,25 @@ export function NovelDetailPage() {
     <div className="animate-fade-in">
       <ConfirmDialog
         open={deleteDialogOpen}
-        title="Excluir novel"
+        title="Remover da leitura"
         description={
           <>
-            Você vai remover <strong className="text-parchment">{novel.title}</strong> da sua biblioteca.
-            Essa ação não pode ser desfeita.
+            Você vai remover <strong className="text-parchment">{novel.title}</strong> da sua lista de leitura.
+            O seu progresso será perdido.
           </>
         }
-        confirmLabel="Excluir"
+        confirmLabel="Remover"
         cancelLabel="Cancelar"
         confirmTone="danger"
-        isPending={deleteNovelMutation.isPending}
+        isPending={removeFromLibraryMutation.isPending}
         onCancel={() => setDeleteDialogOpen(false)}
-        onConfirm={() => deleteNovelMutation.mutate()}
+        onConfirm={() => removeFromLibraryMutation.mutate()}
       />
       <Link
         to="/"
         className="inline-flex items-center gap-1.5 text-xs text-parchment-muted hover:text-parchment transition-colors mb-6 font-body"
       >
-        ← Voltar à biblioteca
+        ← Voltar ao catálogo
       </Link>
 
       {/* Hero */}
@@ -199,57 +202,65 @@ export function NovelDetailPage() {
                 </p>
               </div>
 
-              <button
-                onClick={() => {
-                  if (!novelId || deleteNovelMutation.isPending) return
-                  setDeleteDialogOpen(true)
-                }}
-                disabled={deleteNovelMutation.isPending}
-                className="rounded-lg border border-red-500/30 bg-red-500/8 px-3 py-2 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/14 disabled:opacity-40 font-body sm:flex-shrink-0"
-              >
-                {deleteNovelMutation.isPending ? 'Excluindo...' : 'Excluir novel'}
-              </button>
+              {isReading && (
+                <button
+                  onClick={() => {
+                    if (!novelId || removeFromLibraryMutation.isPending) return
+                    setDeleteDialogOpen(true)
+                  }}
+                  disabled={removeFromLibraryMutation.isPending}
+                  className="rounded-lg border border-red-500/30 bg-red-500/8 px-3 py-2 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/14 disabled:opacity-40 font-body sm:flex-shrink-0"
+                >
+                  {removeFromLibraryMutation.isPending ? 'Removendo...' : 'Remover da leitura'}
+                </button>
+              )}
             </div>
 
-            <div className="mt-4 mb-1">
-              <div className="flex justify-between text-xs font-body mb-1.5">
-                <span className="text-parchment-muted">Progresso</span>
-                <span className="text-amber font-medium">{pct}%</span>
+            {isReading && (
+              <div className="mt-4 mb-1">
+                <div className="flex justify-between text-xs font-body mb-1.5">
+                  <span className="text-parchment-muted">Progresso</span>
+                  <span className="text-amber font-medium">{pct}%</span>
+                </div>
+                <div className="h-1.5 bg-ink-4 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-amber rounded-full transition-all duration-700"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-parchment-muted mt-1.5 font-body">
+                  Lido até capítulo {novel.lastReadChapterNumber ?? 0}
+                </p>
               </div>
-              <div className="h-1.5 bg-ink-4 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber rounded-full transition-all duration-700"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <p className="text-[11px] text-parchment-muted mt-1.5 font-body">
-                Lido até capítulo {novel.lastReadChapterNumber ?? 0}
-              </p>
-            </div>
+            )}
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3">
-              <input
-                type="number"
-                min={0}
-                max={novel.lastChapterNumber ?? undefined}
-                value={progressInput}
-                onChange={(e) => setProgressInput(e.target.value)}
-                placeholder={`Atualizar capítulo…`}
-                className="input-field !py-2 !text-xs w-full sm:w-44"
-              />
-              <button
-                onClick={() => progressMutation.mutate(Number(progressInput))}
-                disabled={!progressInput || progressMutation.isPending}
-                className="w-full sm:w-auto bg-amber hover:bg-amber-light text-ink text-xs font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-40 font-body"
-              >
-                {progressMutation.isPending ? '...' : 'Salvar'}
-              </button>
+              {isReading && (
+                <>
+                  <input
+                    type="number"
+                    min={0}
+                    max={novel.lastChapterNumber ?? undefined}
+                    value={progressInput}
+                    onChange={(e) => setProgressInput(e.target.value)}
+                    placeholder={`Atualizar capítulo…`}
+                    className="input-field !py-2 !text-xs w-full sm:w-44"
+                  />
+                  <button
+                    onClick={() => progressMutation.mutate(Number(progressInput))}
+                    disabled={!progressInput || progressMutation.isPending}
+                    className="w-full sm:w-auto bg-amber hover:bg-amber-light text-ink text-xs font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-40 font-body"
+                  >
+                    {progressMutation.isPending ? '...' : 'Salvar'}
+                  </button>
+                </>
+              )}
               {continueReadingChapter && (
                 <button
                   onClick={() => navigate(`/novels/${novelId}/chapters/${continueReadingChapter.chapterId}`)}
                   className="w-full sm:w-auto rounded-lg border border-amber/30 bg-amber/10 px-4 py-2 text-xs font-semibold text-amber-light transition-colors hover:bg-amber/20 font-body"
                 >
-                  Continuar lendo
+                  {isReading ? 'Continuar lendo' : 'Começar a ler'}
                 </button>
               )}
             </div>
@@ -257,8 +268,8 @@ export function NovelDetailPage() {
         </div>
       </div>
 
-      {/* Sources */}
-      {novel.sources.length > 0 && (
+      {/* Sources (admin only) */}
+      {isAdmin && novel.sources.length > 0 && (
         <div className="card p-4 mb-5">
           <h2 className="text-[11px] font-body font-medium text-parchment-muted uppercase tracking-widest mb-3">
             Fontes monitoradas
@@ -344,13 +355,15 @@ export function NovelDetailPage() {
                 <option value="desc">Trazer os últimos primeiro</option>
                 <option value="asc">Trazer os primeiros primeiro</option>
               </select>
-              <button
-                onClick={() => fetchAllContentMutation.mutate()}
-                disabled={fetchAllContentMutation.isPending}
-                className="w-full sm:w-auto rounded-lg bg-amber px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-amber-light disabled:opacity-40 font-body"
-              >
-                {fetchAllContentMutation.isPending ? 'Enfileirando...' : 'Buscar todos os capítulos'}
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => fetchAllContentMutation.mutate()}
+                  disabled={fetchAllContentMutation.isPending}
+                  className="w-full sm:w-auto rounded-lg bg-amber px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-amber-light disabled:opacity-40 font-body"
+                >
+                  {fetchAllContentMutation.isPending ? 'Enfileirando...' : 'Buscar todos os capítulos'}
+                </button>
+              )}
             </div>
           </div>
 
@@ -396,7 +409,7 @@ export function NovelDetailPage() {
                         >
                           Ler
                         </Link>
-                      ) : (
+                      ) : isAdmin ? (
                         <button
                           onClick={() => fetchContentMutation.mutate(ch.chapterId)}
                           disabled={isFetching || isQueued}
@@ -404,6 +417,10 @@ export function NovelDetailPage() {
                         >
                           {isFetching ? 'Enfileirando...' : isQueued ? 'Processando...' : 'Buscar'}
                         </button>
+                      ) : (
+                        <span className="rounded-md border border-ink-3 px-2.5 py-1 text-[11px] text-parchment-muted/50 font-body">
+                          Indisponível
+                        </span>
                       )}
 
                       <a

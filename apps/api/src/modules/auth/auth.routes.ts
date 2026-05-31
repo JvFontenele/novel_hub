@@ -37,7 +37,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const token = fastify.jwt.sign({ sub: user.id, role: user.role });
 
     return reply.code(201).send({
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
       token,
     });
   });
@@ -74,7 +74,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const token = fastify.jwt.sign({ sub: user.id, role: user.role });
 
     return reply.code(200).send({
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
       token,
     });
   });
