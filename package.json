@@ -1,6 +1,9 @@
 {
   "name": "novel-hub",
   "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "msgpackr-extract"]
+  },
   "scripts": {
     "dev:api": "pnpm --filter @novel-hub/api dev",
     "dev:worker": "pnpm --filter @novel-hub/worker dev",
