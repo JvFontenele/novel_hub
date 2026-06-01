@@ -6,13 +6,14 @@ export async function registerNovel(adminId: string, sourceUrl: string, displayN
   const normalizedUrl = normalizeSourceUrl(sourceUrl);
   const connectorKey = resolveConnectorKey(normalizedUrl);
 
-  const { novel, source } = await sql.begin(async (tx: typeof sql) => {
-    const [novel] = await tx`
+  const { novel, source } = await sql.begin(async (tx) => {
+    const q = tx as unknown as typeof sql;
+    const [novel] = await q`
       INSERT INTO novels (title)
       VALUES (${displayName})
       RETURNING id, title, status
     `;
-    const [source] = await tx`
+    const [source] = await q`
       INSERT INTO novel_sources (novel_id, url, connector_key, next_check_at)
       VALUES (${novel.id}, ${normalizedUrl}, ${connectorKey}, NOW())
       RETURNING id, status
