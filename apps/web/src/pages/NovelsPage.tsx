@@ -165,7 +165,7 @@ export function NovelsPage() {
           {novels.map((novel, i) => {
             const pct = progressPercent(novel)
             const st = STATUS_MAP[novel.status]
-            const coverImageUrl = getCoverImageUrl(novel.coverUrl)
+            const coverImageUrl = getCoverImageUrl(novel.novelId)
             const isReading = novel.lastReadChapterNumber != null
             return (
               <Link

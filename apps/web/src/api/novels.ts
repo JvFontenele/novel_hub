@@ -17,9 +17,9 @@ import type {
   UpdateProgressResponse,
 } from '@novel-hub/contracts'
 
-export function getCoverImageUrl(coverUrl: string | null) {
-  if (!coverUrl) return null
-  return `/api/v1/assets/cover?url=${encodeURIComponent(coverUrl)}`
+export function getCoverImageUrl(novelId: string | null | undefined) {
+  if (!novelId) return null
+  return `/api/v1/novels/${novelId}/cover`
 }
 
 export type ChapterOrder = 'asc' | 'desc'

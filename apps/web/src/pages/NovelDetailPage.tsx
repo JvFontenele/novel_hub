@@ -143,7 +143,7 @@ export function NovelDetailPage() {
   const pct = novel.lastChapterNumber
     ? Math.min(100, Math.round(((novel.lastReadChapterNumber ?? 0) / novel.lastChapterNumber) * 100))
     : 0
-  const coverImageUrl = getCoverImageUrl(novel.coverUrl)
+  const coverImageUrl = getCoverImageUrl(novelId)
   const totalPages = Math.max(1, Math.ceil((chapters?.total ?? 0) / CHAPTERS_PAGE_SIZE))
   const continueReadingChapterId = novel.continueReadingChapterId
 
