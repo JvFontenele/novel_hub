@@ -14,7 +14,8 @@ COPY packages/shared/package.json packages/shared/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/scraping/package.json packages/scraping/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts && \
+    pnpm rebuild esbuild msgpackr-extract
 
 COPY . .
 RUN pnpm build
