@@ -80,7 +80,6 @@ export async function assetsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { novelId: string } }>(
     '/novels/:novelId/cover',
     {
-      preHandler: [fastify.authenticate],
       schema: {
         tags: ['Assets'],
         summary: 'Serve cached novel cover',
