@@ -179,7 +179,7 @@ export function NovelDetailPage() {
             <img
               src={coverImageUrl}
               alt={novel.title}
-              className="w-20 h-28 object-cover rounded-lg flex-shrink-0 border border-ink-4 mx-auto sm:mx-0"
+              className="w-20 h-28 object-cover rounded-lg flex-shrink-0 border border-ink-4 mx-auto sm:mx-0 cover-img"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           ) : (
@@ -215,7 +215,7 @@ export function NovelDetailPage() {
               <div className="mt-4 mb-1">
                 <div className="flex justify-between text-xs font-body mb-1.5">
                   <span className="text-parchment-muted">Progresso</span>
-                  <span className="text-amber font-medium">{pct}%</span>
+                  <span className="text-amber font-medium tabular">{pct}%</span>
                 </div>
                 <div className="h-1.5 bg-ink-4 rounded-full overflow-hidden">
                   <div
@@ -224,7 +224,7 @@ export function NovelDetailPage() {
                   />
                 </div>
                 <p className="text-[11px] text-parchment-muted mt-1.5 font-body">
-                  Lido até capítulo {novel.lastReadChapterNumber ?? 0}
+                  Lido até capítulo <span className="tabular">{novel.lastReadChapterNumber ?? 0}</span>
                 </p>
               </div>
             )}
@@ -459,7 +459,7 @@ export function NovelDetailPage() {
               >
                 Anterior
               </button>
-              <span className="text-xs text-parchment-muted font-body">
+              <span className="text-xs text-parchment-muted font-body tabular">
                 Página {chapterPage} de {totalPages}
               </span>
               <button

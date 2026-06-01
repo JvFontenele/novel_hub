@@ -92,6 +92,7 @@
   h4 {
     font-family: var(--font-display);
     letter-spacing: -0.03em;
+    text-wrap: balance;
   }
 
   a,
@@ -179,10 +180,18 @@
     background: linear-gradient(180deg, rgb(var(--color-accent-light)), rgb(var(--color-accent)));
     color: rgb(246 248 252);
     box-shadow: 0 10px 24px rgb(var(--color-accent-dim) / 0.16);
+    transition-property: transform, background, box-shadow, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
   }
 
   .btn-primary:hover {
     background: linear-gradient(180deg, rgb(var(--color-accent-light)), rgb(var(--color-accent-dim)));
+  }
+
+  .btn-primary:active:not(:disabled) {
+    transform: scale(0.97);
+    box-shadow: 0 4px 10px rgb(var(--color-accent-dim) / 0.12);
   }
 
   .card {
@@ -378,7 +387,10 @@
   }
 
   .reader-menu-item {
-    @apply rounded-lg px-3 py-2 text-xs font-semibold text-parchment-muted transition-colors font-body;
+    @apply rounded-lg px-3 py-2 text-xs font-semibold text-parchment-muted font-body;
+    transition-property: background-color, color;
+    transition-duration: 120ms;
+    transition-timing-function: ease-out;
   }
 
   .reader-menu-item:hover {
@@ -399,4 +411,28 @@
   .animate-delay-2 { animation-delay: 0.2s; animation-fill-mode: both; }
   .animate-delay-3 { animation-delay: 0.3s; animation-fill-mode: both; }
   .animate-delay-4 { animation-delay: 0.4s; animation-fill-mode: both; }
+
+  /* Tabular numbers for counters, progress, chapter numbers */
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* Cover image inset outline */
+  .cover-img {
+    outline: 1px solid rgb(0 0 0 / 0.1);
+    outline-offset: -1px;
+  }
+  .theme-dark .cover-img {
+    outline-color: rgb(255 255 255 / 0.08);
+  }
+
+  /* Tactile press state for secondary buttons */
+  .btn-ghost:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  /* Smooth enter for chapter rows */
+  .chapter-row {
+    transition-property: background-color;
+    transition-duration: 120ms;
+    transition-timing-function: ease-out;
+  }
 }
