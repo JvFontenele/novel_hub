@@ -139,8 +139,8 @@ export function TranslatePage() {
 
       if (abortRef.current) break
 
-      // Capture translated text from DOM
-      const translated = contentEl?.innerText?.trim()
+      // Capture translated HTML from DOM (preserves structure: <p>, <br>, etc.)
+      const translated = contentEl?.innerHTML?.trim()
       if (translated) {
         try {
           await novelsApi.saveTranslation(novelId, ch.chapterId, language, translated)
