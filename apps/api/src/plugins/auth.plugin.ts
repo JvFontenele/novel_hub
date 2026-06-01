@@ -21,7 +21,7 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     try {
       await request.jwtVerify();
     } catch (err) {
-      reply.send(err);
+      return reply.send(err);
     }
   });
 
@@ -29,10 +29,10 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     try {
       await request.jwtVerify();
       if (request.user.role !== 'admin') {
-        reply.code(403).send({ message: 'Forbidden' });
+        return reply.code(403).send({ message: 'Forbidden' });
       }
     } catch (err) {
-      reply.send(err);
+      return reply.send(err);
     }
   });
 });

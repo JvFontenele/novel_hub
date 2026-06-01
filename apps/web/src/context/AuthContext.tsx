@@ -1,5 +1,15 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import type { UserProfile } from '@novel-hub/contracts'
+
+function decodeJwtRole(token: string | null): 'admin' | 'user' | null {
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload?.role ?? null;
+  } catch {
+    return null;
+  }
+}
 
 interface AuthContextValue {
   user: UserProfile | null
@@ -39,8 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token')
   }, [])
 
+  const isAdmin = useMemo(() => decodeJwtRole(token) === 'admin', [token])
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token, isAdmin }}>
       {children}
     </AuthContext.Provider>
   )

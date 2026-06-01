@@ -35,12 +35,7 @@ export async function novelsRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const body = createNovelSchema.safeParse(request.body);
-      if (!body.success) {
-        return reply.code(400).send({ message: 'Validation error', errors: body.error.format() });
-      }
-
-      const { sourceUrl, displayName } = body.data;
+      const { sourceUrl, displayName } = request.body as { sourceUrl: string; displayName: string };
       const result = await novelsService.registerNovel(request.user.sub, sourceUrl, displayName);
       return reply.code(201).send(result);
     },
@@ -134,18 +129,15 @@ export async function novelsRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const body = updateProgressSchema.safeParse(request.body);
-      if (!body.success) {
-        return reply.code(400).send({ message: 'Validation error', errors: body.error.format() });
-      }
-
+      const { lastReadChapterNumber } = request.body as { lastReadChapterNumber: number };
+      await novelsRepo.ensureSubscription(request.user.sub, request.params.novelId);
       const result = await novelsRepo.updateProgress(
         request.user.sub,
         request.params.novelId,
-        body.data.lastReadChapterNumber,
+        lastReadChapterNumber,
       );
       if (!result) {
-        return reply.code(404).send({ message: 'Subscription not found' });
+        return reply.code(404).send({ message: 'Novel not found' });
       }
       return reply.send(result);
     },

@@ -21,12 +21,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const body = registerSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply.code(400).send({ message: 'Validation error', errors: body.error.format() });
-    }
-
-    const { name, email, password } = body.data;
+    const { name, email, password } = request.body as { name: string; email: string; password: string };
     const existing = await authService.findUserByEmail(email);
     if (existing) {
       return reply.code(409).send({ message: 'Email already registered' });
@@ -55,12 +50,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const body = loginSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply.code(400).send({ message: 'Validation error', errors: body.error.format() });
-    }
-
-    const { email, password } = body.data;
+    const { email, password } = request.body as { email: string; password: string };
     const user = await authService.findUserByEmail(email);
     if (!user) {
       return reply.code(401).send({ message: 'Invalid credentials' });

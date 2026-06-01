@@ -31,6 +31,11 @@ function GuestOnly({ children }: { children: ReactNode }) {
   return isAuthenticated ? <Navigate to="/" replace /> : <>{children}</>
 }
 
+function RequireAdmin({ children }: { children: ReactNode }) {
+  const { isAdmin } = useAuth()
+  return isAdmin ? <>{children}</> : <Navigate to="/" replace />
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -65,7 +70,7 @@ export default function App() {
                 <Route path="novels/:novelId" element={<NovelDetailPage />} />
                 <Route path="novels/:novelId/chapters/:chapterId" element={<ChapterReaderPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
-                <Route path="admin" element={<AdminPage />} />
+                <Route path="admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

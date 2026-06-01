@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import pLimit from 'p-limit';
 import {
   clearChapterContent,
   findChapterById,
@@ -77,29 +78,28 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ message: 'Nenhum capítulo encontrado para esta novel.' });
       }
 
+      const limit = pLimit(20);
+
       const chaptersToQueue = (
         await Promise.all(
-          chapters.map(async (chapter) => {
-            if (chapter.hasContent) {
-              return null;
-            }
-
-            const hasPendingJob = await hasPendingChapterContentJob(chapter.chapterId);
-            if (hasPendingJob) {
-              return null;
-            }
-
-            return chapter;
-          }),
+          chapters.map((chapter) =>
+            limit(async () => {
+              if (chapter.hasContent) return null;
+              const hasPendingJob = await hasPendingChapterContentJob(chapter.chapterId);
+              return hasPendingJob ? null : chapter;
+            }),
+          ),
         )
       ).filter((chapter): chapter is (typeof chapters)[number] => chapter !== null);
 
       await Promise.all(
         chaptersToQueue.map((chapter) =>
-          enqueueFetchChapterContent(novelId, chapter.chapterId, {
-            jobId: getChapterContentJobId(chapter.chapterId),
-            requestedByUserId: request.user.sub,
-          }),
+          limit(() =>
+            enqueueFetchChapterContent(novelId, chapter.chapterId, {
+              jobId: getChapterContentJobId(chapter.chapterId),
+              requestedByUserId: request.user.sub,
+            }),
+          ),
         ),
       );
 

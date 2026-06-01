@@ -21,6 +21,7 @@
     "bullmq": "^5.0.0",
     "fastify": "^4.26.0",
     "fastify-plugin": "^4.5.1",
+    "p-limit": "^7.3.0",
     "postgres": "^3.4.3",
     "zod": "^3.22.0",
     "zod-to-json-schema": "^3.25.1"
