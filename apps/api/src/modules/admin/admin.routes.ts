@@ -104,7 +104,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
         summary: 'Update scraper settings',
         description: 'Stores cookies/user-agent for a scraper hostname without rebuilding services.',
         security: bearerSecurity,
-        body: scraperSettingBodySchema,
         response: {
           200: scraperSettingSchema,
           400: errorResponseSchema,
