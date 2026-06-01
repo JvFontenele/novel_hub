@@ -1,5 +1,21 @@
 import { sql } from '../../db/client.js';
 
+export async function saveCoverData(novelId: string, data: Buffer, contentType: string) {
+  await sql`
+    UPDATE novels
+    SET cover_data = ${data}, cover_content_type = ${contentType}
+    WHERE id = ${novelId}
+  `;
+}
+
+export async function getCoverData(novelId: string) {
+  const [row] = await sql<{ data: Buffer | null; contentType: string | null }[]>`
+    SELECT cover_data AS data, cover_content_type AS "contentType"
+    FROM novels WHERE id = ${novelId}
+  `;
+  return row ?? null;
+}
+
 export async function createNovel(title: string) {
   const [novel] = await sql`
     INSERT INTO novels (title)

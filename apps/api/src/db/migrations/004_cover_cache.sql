@@ -1,0 +1,3 @@
+ALTER TABLE novels
+  ADD COLUMN IF NOT EXISTS cover_data BYTEA,
+  ADD COLUMN IF NOT EXISTS cover_content_type TEXT;

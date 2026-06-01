@@ -4,6 +4,7 @@ import type { CollectSourceJobData } from '@novel-hub/shared';
 import { resolveConnector } from '@novel-hub/scraping';
 import { sql } from '../db/client.js';
 import { isFinalAttempt, insertNotification } from './notify.js';
+import { cacheCover } from './cache-cover.js';
 
 export async function collectSourceJob(job: Job<CollectSourceJobData>) {
   const { sourceId, requestedByUserId } = job.data;
@@ -43,6 +44,9 @@ export async function collectSourceJob(job: Job<CollectSourceJobData>) {
           updated_at = NOW()
         WHERE id = ${source.novel_id}
       `;
+      if (parsed.coverUrl) {
+        cacheCover(source.novel_id, parsed.coverUrl).catch(() => {});
+      }
     }
 
     // Insert chapters with idempotency

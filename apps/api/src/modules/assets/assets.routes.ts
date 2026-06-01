@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { coverQuerySchema, errorResponseSchema } from '../../openapi/schemas.js';
 import { sql } from '../../db/client.js';
+import { serveCover } from './cover-cache.js';
 
 const allowedHosts = new Set([
   'book-pic.webnovel.com',
@@ -76,6 +77,33 @@ function isAllowedCoverUrl(url: string): boolean {
 }
 
 export async function assetsRoutes(fastify: FastifyInstance) {
+  fastify.get<{ Params: { novelId: string } }>(
+    '/novels/:novelId/cover',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['Assets'],
+        summary: 'Serve cached novel cover',
+        params: { type: 'object', properties: { novelId: { type: 'string' } }, required: ['novelId'] },
+        response: { 200: { type: 'string', format: 'binary' }, 404: errorResponseSchema },
+      },
+    },
+    async (request, reply) => {
+      const { novelId } = request.params;
+      const [novel] = await sql<{ coverUrl: string | null }[]>`
+        SELECT cover_url AS "coverUrl" FROM novels WHERE id = ${novelId}
+      `;
+      if (!novel) return reply.code(404).send({ message: 'Novel not found' });
+
+      const cover = await serveCover(novelId, novel.coverUrl);
+      if (!cover) return reply.code(404).send({ message: 'Cover not available' });
+
+      reply.header('Content-Type', cover.contentType);
+      reply.header('Cache-Control', 'public, max-age=604800, immutable');
+      return reply.send(cover.data);
+    },
+  );
+
   fastify.get<{ Querystring: { url?: string } }>(
     '/assets/cover',
     {
