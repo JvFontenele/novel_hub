@@ -154,12 +154,13 @@ export const novelDetailSchema = {
     ...novelListItemSchema.properties,
     synopsis: { type: 'string', nullable: true },
     author: { type: 'string', nullable: true },
+    continueReadingChapterId: { type: 'string', nullable: true },
     sources: {
       type: 'array',
       items: novelSourceSchema,
     },
   },
-  required: [...(novelListItemSchema.required as string[]), 'synopsis', 'author', 'sources'],
+  required: [...(novelListItemSchema.required as string[]), 'synopsis', 'author', 'continueReadingChapterId', 'sources'],
   additionalProperties: false,
 } satisfies JsonSchema;
 
@@ -212,8 +213,10 @@ export const chapterContentSchema = {
     content: { type: 'string' },
     contentFetchedAt: { type: 'string', format: 'date-time' },
     url: { type: 'string', format: 'uri' },
+    prevChapterId: { type: 'string', nullable: true },
+    nextChapterId: { type: 'string', nullable: true },
   },
-  required: ['chapterId', 'chapterNumber', 'title', 'content', 'contentFetchedAt', 'url'],
+  required: ['chapterId', 'chapterNumber', 'title', 'content', 'contentFetchedAt', 'url', 'prevChapterId', 'nextChapterId'],
   additionalProperties: false,
 } satisfies JsonSchema;
 

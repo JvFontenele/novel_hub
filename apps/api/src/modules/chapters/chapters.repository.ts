@@ -54,14 +54,26 @@ export async function findChapterById(chapterId: string, novelId: string) {
 export async function getChapterContent(chapterId: string, novelId: string) {
   const rows = await sql`
     SELECT
-      id AS "chapterId",
-      chapter_number AS "chapterNumber",
-      title,
-      url,
-      content,
-      content_fetched_at AS "contentFetchedAt"
-    FROM chapters
-    WHERE id = ${chapterId} AND novel_id = ${novelId}
+      c.id AS "chapterId",
+      c.chapter_number AS "chapterNumber",
+      c.title,
+      c.url,
+      c.content,
+      c.content_fetched_at AS "contentFetchedAt",
+      prev.id AS "prevChapterId",
+      next.id AS "nextChapterId"
+    FROM chapters c
+    LEFT JOIN LATERAL (
+      SELECT id FROM chapters
+      WHERE novel_id = ${novelId} AND chapter_number < c.chapter_number
+      ORDER BY chapter_number DESC LIMIT 1
+    ) prev ON true
+    LEFT JOIN LATERAL (
+      SELECT id FROM chapters
+      WHERE novel_id = ${novelId} AND chapter_number > c.chapter_number
+      ORDER BY chapter_number ASC LIMIT 1
+    ) next ON true
+    WHERE c.id = ${chapterId} AND c.novel_id = ${novelId}
   `;
   return rows[0] ?? null;
 }

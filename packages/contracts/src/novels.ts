@@ -23,6 +23,7 @@ export interface NovelDetail extends NovelListItem {
   synopsis: string | null;
   author: string | null;
   sources: NovelSourceView[];
+  continueReadingChapterId: string | null;
 }
 
 export interface ChapterListItem {
@@ -42,6 +43,8 @@ export interface ChapterContent {
   content: string;
   contentFetchedAt: string;
   url: string;
+  prevChapterId: string | null;
+  nextChapterId: string | null;
 }
 
 export interface QueueChapterContentResponse {

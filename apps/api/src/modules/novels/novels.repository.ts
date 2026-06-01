@@ -59,6 +59,7 @@ export async function findNovelById(novelId: string, userId: string) {
       n.status,
       n.last_chapter_number AS "lastChapterNumber",
       s.last_read_chapter_number AS "lastReadChapterNumber",
+      next_ch.id AS "continueReadingChapterId",
       COALESCE(
         json_agg(json_build_object(
           'sourceId', ns.id,
@@ -72,8 +73,14 @@ export async function findNovelById(novelId: string, userId: string) {
     FROM novels n
     LEFT JOIN subscriptions s ON s.novel_id = n.id AND s.user_id = ${userId}
     LEFT JOIN novel_sources ns ON ns.novel_id = n.id
+    LEFT JOIN LATERAL (
+      SELECT id FROM chapters
+      WHERE novel_id = n.id
+        AND chapter_number > COALESCE(s.last_read_chapter_number, 0)
+      ORDER BY chapter_number ASC LIMIT 1
+    ) next_ch ON true
     WHERE n.id = ${novelId}
-    GROUP BY n.id, s.last_read_chapter_number
+    GROUP BY n.id, s.last_read_chapter_number, next_ch.id
   `;
   return row ?? null;
 }

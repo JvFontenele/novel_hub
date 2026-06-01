@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import DOMPurify from 'dompurify'
 import { novelsApi } from '@/api/novels'
 import { useAuth } from '@/context/AuthContext'
-import type { ChapterListItem } from '@novel-hub/contracts'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 function isSafeUrl(url: string | null | undefined): boolean {
@@ -18,7 +17,6 @@ function isSafeUrl(url: string | null | undefined): boolean {
 
 type ReaderFont = 'site' | 'arial' | 'georgia' | 'verdana'
 
-const READER_NAV_PAGE_SIZE = 10000
 const READER_FONT_STORAGE_KEY = 'novel-hub-reader-font'
 const READER_FONT_SIZE_STORAGE_KEY = 'novel-hub-reader-font-size'
 const DEFAULT_READER_FONT_SIZE = 18
@@ -81,12 +79,6 @@ export function ChapterReaderPage() {
   const { data: novel } = useQuery({
     queryKey: ['novel', novelId],
     queryFn: () => novelsApi.get(novelId!),
-    enabled: !!novelId,
-  })
-
-  const { data: chaptersData } = useQuery({
-    queryKey: ['chapters-reader-nav', novelId],
-    queryFn: () => novelsApi.chapters(novelId!, 1, READER_NAV_PAGE_SIZE, 'asc'),
     enabled: !!novelId,
   })
 
@@ -174,21 +166,16 @@ export function ChapterReaderPage() {
     return () => window.clearInterval(intervalId)
   }, [chapterId, isQueued, novelId, queryClient])
 
-  const allChapters: ChapterListItem[] = chaptersData?.items ?? []
-  const currentIndex = allChapters.findIndex((item) => item.chapterId === chapterId)
-  const currentChapterMeta = currentIndex >= 0 ? allChapters[currentIndex] : null
-  const prevChapter = currentIndex > 0 ? allChapters[currentIndex - 1] : null
-  const nextChapter = currentIndex >= 0 && currentIndex < allChapters.length - 1
-    ? allChapters[currentIndex + 1]
-    : null
+  const prevChapterId = chapter?.prevChapterId ?? null
+  const nextChapterId = chapter?.nextChapterId ?? null
 
-  const chapterNumber = chapter?.chapterNumber ?? currentChapterMeta?.chapterNumber ?? null
-  const chapterTitle = chapter?.title ?? currentChapterMeta?.title ?? null
-  const chapterSourceUrl = chapter?.url ?? currentChapterMeta?.url ?? null
+  const chapterNumber = chapter?.chapterNumber ?? null
+  const chapterTitle = chapter?.title ?? null
+  const chapterSourceUrl = chapter?.url ?? null
   const hasChapterContent = Boolean(chapter?.content)
   const chapterContentHtml = chapter?.content ?? ''
   const isNotFound = isError && (error as { response?: { status?: number } })?.response?.status === 404
-  const isMissingChapter = !isLoading && !chapter && !currentChapterMeta && !isNotFound
+  const isMissingChapter = !isLoading && !chapter && !isNotFound
   const isRead = chapterNumber != null && novel
     ? chapterNumber <= (novel.lastReadChapterNumber ?? 0)
     : false
@@ -230,7 +217,7 @@ export function ChapterReaderPage() {
     )
   }
 
-  if (!currentChapterMeta && !chapter && !isNotFound) return null
+  if (!chapter && !isNotFound) return null
 
   const hasAdminActions = isAdmin && (chapterSourceUrl || hasChapterContent)
 
@@ -427,8 +414,8 @@ export function ChapterReaderPage() {
 
       <div className="reader-actions flex flex-col gap-2 pb-8 sm:flex-row sm:items-center sm:justify-between">
         <button
-          onClick={() => prevChapter && navigate(`/novels/${novelId}/chapters/${prevChapter.chapterId}`)}
-          disabled={!prevChapter}
+          onClick={() => prevChapterId && navigate(`/novels/${novelId}/chapters/${prevChapterId}`)}
+          disabled={!prevChapterId}
           className="w-full sm:w-auto rounded-lg border border-ink-3 bg-ink-2 px-4 py-2 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-30 font-body"
         >
           ← Cap. anterior
@@ -451,8 +438,8 @@ export function ChapterReaderPage() {
         </button>
 
         <button
-          onClick={() => nextChapter && navigate(`/novels/${novelId}/chapters/${nextChapter.chapterId}`)}
-          disabled={!nextChapter}
+          onClick={() => nextChapterId && navigate(`/novels/${novelId}/chapters/${nextChapterId}`)}
+          disabled={!nextChapterId}
           className="w-full sm:w-auto rounded-lg border border-ink-3 bg-ink-2 px-4 py-2 text-xs font-semibold text-parchment-muted hover:text-parchment hover:border-ink-4 transition-colors disabled:opacity-30 font-body"
         >
           Cap. seguinte →
