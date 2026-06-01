@@ -139,8 +139,16 @@ export function TranslatePage() {
 
       if (abortRef.current) break
 
-      // Capture translated HTML from DOM (preserves structure: <p>, <br>, etc.)
-      const translated = contentEl?.innerHTML?.trim()
+      // Capture translated HTML, sanitize to keep only structural tags
+      // (removes <font>, data-* attrs and other artifacts added by browser translation)
+      const raw = contentEl?.innerHTML?.trim()
+      const translated = raw
+        ? DOMPurify.sanitize(raw, {
+            ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'b', 'i', 'u', 'ul', 'ol', 'li',
+                           'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'div', 'span'],
+            ALLOWED_ATTR: [],
+          })
+        : null
       if (translated) {
         try {
           await novelsApi.saveTranslation(novelId, ch.chapterId, language, translated)
