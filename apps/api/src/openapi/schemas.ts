@@ -216,7 +216,7 @@ export const chapterContentSchema = {
     prevChapterId: { type: 'string', nullable: true },
     nextChapterId: { type: 'string', nullable: true },
   },
-  required: ['chapterId', 'chapterNumber', 'title', 'content', 'contentFetchedAt', 'url', 'prevChapterId', 'nextChapterId'],
+  required: ['chapterId', 'chapterNumber', 'title', 'content', 'contentFetchedAt', 'url'],
   additionalProperties: false,
 } satisfies JsonSchema;
 
