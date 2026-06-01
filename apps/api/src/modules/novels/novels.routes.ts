@@ -187,16 +187,17 @@ export async function novelsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { novelId: string } }>(
     '/novels/:novelId/events',
     {
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authorizeAdmin],
       schema: {
         tags: ['Novels'],
         summary: 'List novel events',
-        description: 'Returns recent change events for a novel.',
+        description: 'Admin-only: returns recent change events for a novel.',
         security: bearerSecurity,
         params: idParamsSchema('novelId', 'Novel identifier'),
         response: {
           200: listResponseSchema(novelEventSchema),
           401: errorResponseSchema,
+          403: errorResponseSchema,
         },
       },
     },
