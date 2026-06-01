@@ -251,6 +251,8 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
         content: row.content,
         contentFetchedAt: row.contentFetchedAt,
         url: row.url,
+        prevChapterId: row.prevChapterId ?? null,
+        nextChapterId: row.nextChapterId ?? null,
       });
     },
   );
