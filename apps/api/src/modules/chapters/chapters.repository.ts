@@ -102,6 +102,32 @@ export async function clearChapterContent(chapterId: string, novelId: string) {
   return rows[0] ?? null;
 }
 
+export async function getTranslation(chapterId: string, language: string) {
+  const [row] = await sql`
+    SELECT content, language, created_at AS "createdAt"
+    FROM chapter_translations
+    WHERE chapter_id = ${chapterId} AND language = ${language}
+  `;
+  return row ?? null;
+}
+
+export async function upsertTranslation(chapterId: string, language: string, content: string) {
+  const [row] = await sql`
+    INSERT INTO chapter_translations (chapter_id, language, content)
+    VALUES (${chapterId}, ${language}, ${content})
+    ON CONFLICT (chapter_id, language) DO UPDATE
+    SET content = EXCLUDED.content, updated_at = NOW()
+    RETURNING id, language, created_at AS "createdAt"
+  `;
+  return row;
+}
+
+export async function listAvailableLanguages(chapterId: string) {
+  return sql<{ language: string }[]>`
+    SELECT language FROM chapter_translations WHERE chapter_id = ${chapterId}
+  `;
+}
+
 export async function listChapterIdsByNovel(novelId: string) {
   return sql<{ chapterId: string; hasContent: boolean }[]>`
     SELECT

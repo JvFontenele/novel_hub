@@ -4,8 +4,11 @@ import {
   clearChapterContent,
   findChapterById,
   getChapterContent,
+  getTranslation,
+  listAvailableLanguages,
   listChapterIdsByNovel,
   listChaptersByNovel,
+  upsertTranslation,
 } from './chapters.repository.js';
 import { ensureSubscription } from '../novels/novels.repository.js';
 import {
@@ -218,16 +221,21 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
     },
   );
 
-  fastify.get<{ Params: { novelId: string; chapterId: string } }>(
+  fastify.get<{ Params: { novelId: string; chapterId: string }; Querystring: { language?: string } }>(
     '/novels/:novelId/chapters/:chapterId/content',
     {
       preHandler: [fastify.authenticate],
       schema: {
         tags: ['Chapters'],
         summary: 'Get cached chapter content',
-        description: 'Returns previously fetched chapter content. Creates a reading subscription on first successful read.',
+        description: 'Returns chapter content. Pass ?language=pt-br to get a translation if available.',
         security: bearerSecurity,
         params: chapterParamsSchema,
+        querystring: {
+          type: 'object',
+          properties: { language: { type: 'string' } },
+          additionalProperties: false,
+        },
         response: {
           200: chapterContentSchema,
           404: errorResponseSchema,
@@ -236,6 +244,7 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { novelId, chapterId } = request.params;
+      const { language } = request.query;
 
       const row = await getChapterContent(chapterId, novelId);
       if (!row || !row.content) {
@@ -244,16 +253,71 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
 
       await ensureSubscription(request.user.sub, novelId);
 
+      let content = row.content;
+      let translationLanguage: string | null = null;
+      if (language) {
+        const translation = await getTranslation(chapterId, language);
+        if (translation) {
+          content = translation.content;
+          translationLanguage = translation.language;
+        }
+      }
+
       return reply.send({
         chapterId: row.chapterId,
         chapterNumber: Number(row.chapterNumber),
         title: row.title ?? null,
-        content: row.content,
+        content,
         contentFetchedAt: row.contentFetchedAt,
         url: row.url,
         prevChapterId: row.prevChapterId ?? null,
         nextChapterId: row.nextChapterId ?? null,
+        language: translationLanguage,
       });
+    },
+  );
+
+  fastify.put<{ Params: { novelId: string; chapterId: string }; Body: { language: string; content: string } }>(
+    '/novels/:novelId/chapters/:chapterId/translation',
+    {
+      preHandler: [fastify.authorizeAdmin],
+      schema: {
+        tags: ['Chapters'],
+        summary: 'Save chapter translation',
+        security: bearerSecurity,
+        params: chapterParamsSchema,
+        body: {
+          type: 'object',
+          properties: {
+            language: { type: 'string', minLength: 2, maxLength: 10 },
+            content: { type: 'string', minLength: 1 },
+          },
+          required: ['language', 'content'],
+          additionalProperties: false,
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              language: { type: 'string' },
+              availableLanguages: { type: 'array', items: { type: 'string' } },
+            },
+          },
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { novelId, chapterId } = request.params;
+      const { language, content } = request.body;
+
+      const chapter = await findChapterById(chapterId, novelId);
+      if (!chapter) return reply.status(404).send({ message: 'Capítulo não encontrado.' });
+
+      await upsertTranslation(chapterId, language, content);
+      const langs = await listAvailableLanguages(chapterId);
+
+      return reply.send({ language, availableLanguages: langs.map((l) => l.language) });
     },
   );
 }

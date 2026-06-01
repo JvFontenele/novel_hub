@@ -45,6 +45,7 @@ export interface ChapterContent {
   url: string;
   prevChapterId: string | null;
   nextChapterId: string | null;
+  language: string | null;
 }
 
 export interface QueueChapterContentResponse {

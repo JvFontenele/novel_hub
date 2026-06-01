@@ -215,6 +215,7 @@ export const chapterContentSchema = {
     url: { type: 'string', format: 'uri' },
     prevChapterId: { type: 'string', nullable: true },
     nextChapterId: { type: 'string', nullable: true },
+    language: { type: 'string', nullable: true },
   },
   required: ['chapterId', 'chapterNumber', 'title', 'content', 'contentFetchedAt', 'url'],
   additionalProperties: false,
