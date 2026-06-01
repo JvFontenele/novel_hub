@@ -3,6 +3,7 @@ import type { Job } from 'bullmq';
 import type { CollectSourceJobData } from '@novel-hub/shared';
 import { resolveConnector } from '@novel-hub/scraping';
 import { sql } from '../db/client.js';
+import { isFinalAttempt, insertNotification } from './notify.js';
 
 export async function collectSourceJob(job: Job<CollectSourceJobData>) {
   const { sourceId, requestedByUserId } = job.data;
@@ -160,10 +161,7 @@ export async function collectSourceJob(job: Job<CollectSourceJobData>) {
       WHERE id = ${sourceId}
     `;
 
-    const totalAttempts = job.opts.attempts ?? 1;
-    const isFinalAttempt = job.attemptsMade + 1 >= totalAttempts;
-
-    if (isFinalAttempt) {
+    if (isFinalAttempt(job)) {
       const [event] = await sql`
         INSERT INTO events (novel_id, source_id, type, payload)
         VALUES (
@@ -180,32 +178,14 @@ export async function collectSourceJob(job: Job<CollectSourceJobData>) {
         RETURNING id
       `;
 
-      if (requestedByUserId) {
-        await sql`
-          INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
-          VALUES (
-            ${requestedByUserId},
-            ${source.novel_id},
-            ${event.id},
-            'SOURCE_FAILED',
-            'Erro ao buscar capítulos da novel',
-            ${errorMessage}
-          )
-        `;
-      } else {
-        await sql`
-          INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
-          SELECT
-            s.user_id,
-            ${source.novel_id},
-            ${event.id},
-            'SOURCE_FAILED',
-            'Erro ao buscar capítulos da novel',
-            ${errorMessage}
-          FROM subscriptions s
-          WHERE s.novel_id = ${source.novel_id}
-        `;
-      }
+      await insertNotification({
+        requestedByUserId,
+        novelId: source.novel_id,
+        eventId: event.id,
+        type: 'SOURCE_FAILED',
+        title: 'Erro ao buscar capítulos da novel',
+        body: errorMessage,
+      });
     }
 
     throw err; // let BullMQ handle retries

@@ -2,6 +2,7 @@ import type { Job } from 'bullmq';
 import { fetchChapterContent } from '@novel-hub/scraping';
 import type { FetchChapterContentJobData } from '@novel-hub/shared';
 import { sql } from '../db/client.js';
+import { isFinalAttempt, insertNotification } from './notify.js';
 
 interface ChapterRow {
   chapterId: string;
@@ -65,10 +66,8 @@ export async function fetchChapterContentJob(job: Job<FetchChapterContentJobData
     return savedRows[0];
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    const totalAttempts = job.opts.attempts ?? 1;
-    const isFinalAttempt = job.attemptsMade + 1 >= totalAttempts;
 
-    if (isFinalAttempt) {
+    if (isFinalAttempt(job)) {
       const chapterLabel = chapter.title
         ? `Capítulo ${chapter.chapterNumber} - ${chapter.title}`
         : `Capítulo ${chapter.chapterNumber}`;
@@ -90,32 +89,14 @@ export async function fetchChapterContentJob(job: Job<FetchChapterContentJobData
         RETURNING id
       `;
 
-      if (requestedByUserId) {
-        await sql`
-          INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
-          VALUES (
-            ${requestedByUserId},
-            ${novelId},
-            ${event.id},
-            'SOURCE_FAILED',
-            'Erro ao buscar conteúdo do capítulo',
-            ${`${chapterLabel}: ${errorMessage}`}
-          )
-        `;
-      } else {
-        await sql`
-          INSERT INTO notifications (user_id, novel_id, event_id, type, title, body)
-          SELECT
-            s.user_id,
-            ${novelId},
-            ${event.id},
-            'SOURCE_FAILED',
-            'Erro ao buscar conteúdo do capítulo',
-            ${`${chapterLabel}: ${errorMessage}`}
-          FROM subscriptions s
-          WHERE s.novel_id = ${novelId}
-        `;
-      }
+      await insertNotification({
+        requestedByUserId,
+        novelId,
+        eventId: event.id,
+        type: 'SOURCE_FAILED',
+        title: 'Erro ao buscar conteúdo do capítulo',
+        body: `${chapterLabel}: ${errorMessage}`,
+      });
     }
 
     throw err;
