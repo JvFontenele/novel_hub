@@ -211,7 +211,7 @@ export function TranslatePage() {
                 if (el) chapterRefs.current.set(ch.chapterId, el)
                 else chapterRefs.current.delete(ch.chapterId)
               }}
-              style={{ fontSize: '5px', lineHeight: 1.2, color: 'transparent', userSelect: 'none' }}
+              style={{ fontSize: '5px', lineHeight: 1.2, userSelect: 'none' }}
               dangerouslySetInnerHTML={{ __html: ch.content }}
             />
           </div>
