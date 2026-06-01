@@ -9,7 +9,6 @@ jobs:
     name: Deploy to VPS
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: ssh
 
     steps:
       - name: Deploy via SSH
