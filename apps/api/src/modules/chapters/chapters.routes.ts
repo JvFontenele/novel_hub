@@ -78,12 +78,13 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ message: 'Nenhum capítulo encontrado para esta novel.' });
       }
 
-      const limit = pLimit(20);
+      const checkLimit = pLimit(20);
+      const enqueueLimit = pLimit(20);
 
       const chaptersToQueue = (
         await Promise.all(
           chapters.map((chapter) =>
-            limit(async () => {
+            checkLimit(async () => {
               if (chapter.hasContent) return null;
               const hasPendingJob = await hasPendingChapterContentJob(chapter.chapterId);
               return hasPendingJob ? null : chapter;
@@ -94,7 +95,7 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
 
       await Promise.all(
         chaptersToQueue.map((chapter) =>
-          limit(() =>
+          enqueueLimit(() =>
             enqueueFetchChapterContent(novelId, chapter.chapterId, {
               jobId: getChapterContentJobId(chapter.chapterId),
               requestedByUserId: request.user.sub,

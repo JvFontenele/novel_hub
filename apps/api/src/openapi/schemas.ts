@@ -261,7 +261,7 @@ export const chapterListQuerySchema = {
   type: 'object',
   properties: {
     page: { type: 'number', minimum: 1, default: 1 },
-    pageSize: { type: 'number', minimum: 1, default: 50 },
+    pageSize: { type: 'number', minimum: 1, maximum: 200, default: 50 },
     order: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
   },
   additionalProperties: false,

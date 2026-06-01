@@ -37,14 +37,10 @@ export async function sourcesRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const body = patchSourceSchema.safeParse(request.body);
-      if (!body.success) {
-        return reply.code(400).send({ message: 'Validation error', errors: body.error.format() });
-      }
-
+      const { monitoringEnabled } = request.body as { monitoringEnabled: boolean };
       const source = await sourcesService.toggleMonitoring(
         request.params.sourceId,
-        body.data.monitoringEnabled,
+        monitoringEnabled,
       );
       if (!source) {
         return reply.code(404).send({ message: 'Source not found' });

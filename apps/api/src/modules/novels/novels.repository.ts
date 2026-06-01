@@ -4,7 +4,7 @@ export async function createNovel(title: string) {
   const [novel] = await sql`
     INSERT INTO novels (title)
     VALUES (${title})
-    RETURNING *
+    RETURNING id, title, status, created_at
   `;
   return novel;
 }
@@ -13,7 +13,7 @@ export async function createSource(novelId: string, url: string, connectorKey: s
   const [source] = await sql`
     INSERT INTO novel_sources (novel_id, url, connector_key, next_check_at)
     VALUES (${novelId}, ${url}, ${connectorKey}, NOW())
-    RETURNING *
+    RETURNING id, novel_id, url, connector_key, status, monitoring_enabled, next_check_at, created_at
   `;
   return source;
 }
@@ -106,7 +106,7 @@ export async function updateProgress(userId: string, novelId: string, lastReadCh
   return sub ?? null;
 }
 
-export async function listEventsByNovel(novelId: string) {
+export async function listEventsByNovel(novelId: string, limit = 100) {
   return sql`
     SELECT
       e.id AS "eventId",
@@ -116,7 +116,7 @@ export async function listEventsByNovel(novelId: string) {
     FROM events e
     WHERE e.novel_id = ${novelId}
     ORDER BY e.created_at DESC
-    LIMIT 100
+    LIMIT ${limit}
   `;
 }
 
