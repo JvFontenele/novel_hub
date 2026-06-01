@@ -81,4 +81,9 @@ export const novelsApi = {
     api
       .get<ChapterContent>(`/novels/${novelId}/chapters/${chapterId}/content`)
       .then((r) => r.data),
+
+  saveTranslation: (novelId: string, chapterId: string, language: string, content: string): Promise<void> =>
+    api
+      .put(`/novels/${novelId}/chapters/${chapterId}/translation`, { language, content })
+      .then(() => {}),
 }

@@ -165,12 +165,22 @@ export function NovelDetailPage() {
         onCancel={() => setDeleteDialogOpen(false)}
         onConfirm={() => removeFromLibraryMutation.mutate()}
       />
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1.5 text-xs text-parchment-muted hover:text-parchment transition-colors mb-6 font-body"
-      >
-        ← Voltar ao catálogo
-      </Link>
+      <div className="flex items-center justify-between mb-6">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs text-parchment-muted hover:text-parchment transition-colors font-body"
+        >
+          ← Voltar ao catálogo
+        </Link>
+        {isAdmin && (
+          <Link
+            to={`/novels/${novelId}/translate`}
+            className="rounded-lg border border-ink-3 bg-ink-2 px-3 py-1.5 text-xs font-semibold text-parchment-muted hover:text-parchment transition-colors font-body"
+          >
+            Traduzir capítulos
+          </Link>
+        )}
+      </div>
 
       {/* Hero */}
       <div className="card p-4 sm:p-6 mb-5 shadow-none">
