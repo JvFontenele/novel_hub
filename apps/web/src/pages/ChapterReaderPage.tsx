@@ -19,6 +19,21 @@ type ReaderFont = 'site' | 'arial' | 'georgia' | 'verdana'
 
 const READER_FONT_STORAGE_KEY = 'novel-hub-reader-font'
 const READER_FONT_SIZE_STORAGE_KEY = 'novel-hub-reader-font-size'
+const READER_LANGUAGE_STORAGE_KEY = 'novel-hub-reader-language'
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  'pt-br': 'Português',
+  'es': 'Español',
+  'fr': 'Français',
+  'de': 'Deutsch',
+  'ja': '日本語',
+  'ko': '한국어',
+}
+
+function getStoredReaderLanguage(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(READER_LANGUAGE_STORAGE_KEY) ?? null
+}
 const DEFAULT_READER_FONT_SIZE = 18
 const MIN_READER_FONT_SIZE = 14
 const MAX_READER_FONT_SIZE = 28
@@ -64,16 +79,24 @@ export function ChapterReaderPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [readerFont, setReaderFont] = useState<ReaderFont>(getStoredReaderFont)
   const [readerFontSize, setReaderFontSize] = useState<number>(getStoredReaderFontSize)
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(getStoredReaderLanguage)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement | null>(null)
   const actionsRef = useRef<HTMLDivElement | null>(null)
 
   const { data: chapter, isLoading, isError, error } = useQuery({
-    queryKey: ['chapter-content', novelId, chapterId],
-    queryFn: () => novelsApi.getChapterContent(novelId!, chapterId!),
+    queryKey: ['chapter-content', novelId, chapterId, selectedLanguage],
+    queryFn: () => novelsApi.getChapterContent(novelId!, chapterId!, selectedLanguage),
     enabled: !!novelId && !!chapterId,
     retry: false,
+  })
+
+  const { data: availableLanguages = [] } = useQuery({
+    queryKey: ['chapter-languages', novelId, chapterId],
+    queryFn: () => novelsApi.listChapterLanguages(novelId!, chapterId!),
+    enabled: !!novelId && !!chapterId,
+    staleTime: 60_000,
   })
 
   const { data: novel } = useQuery({
@@ -131,6 +154,14 @@ export function ChapterReaderPage() {
   useEffect(() => {
     window.localStorage.setItem(READER_FONT_SIZE_STORAGE_KEY, String(readerFontSize))
   }, [readerFontSize])
+
+  useEffect(() => {
+    if (selectedLanguage) {
+      window.localStorage.setItem(READER_LANGUAGE_STORAGE_KEY, selectedLanguage)
+    } else {
+      window.localStorage.removeItem(READER_LANGUAGE_STORAGE_KEY)
+    }
+  }, [selectedLanguage])
 
   useEffect(() => {
     setSettingsOpen(false)
@@ -291,6 +322,28 @@ export function ChapterReaderPage() {
                           Entre {MIN_READER_FONT_SIZE}px e {MAX_READER_FONT_SIZE}px
                         </span>
                       </label>
+                      {availableLanguages.length > 0 && (
+                        <label className="block">
+                          <span className="reader-meta text-xs font-body mb-1.5 block">Idioma</span>
+                          <select
+                            value={selectedLanguage ?? ''}
+                            onChange={(e) => setSelectedLanguage(e.target.value || null)}
+                            className="input-field !py-2 !px-3 !text-xs"
+                          >
+                            <option value="">Original</option>
+                            {availableLanguages.map((lang) => (
+                              <option key={lang} value={lang}>
+                                {LANGUAGE_LABELS[lang] ?? lang}
+                              </option>
+                            ))}
+                          </select>
+                          {chapter?.language && (
+                            <span className="reader-meta text-[11px] font-body mt-1.5 block text-amber">
+                              Tradução: {LANGUAGE_LABELS[chapter.language] ?? chapter.language}
+                            </span>
+                          )}
+                        </label>
+                      )}
                     </div>
                   </div>
                 )}

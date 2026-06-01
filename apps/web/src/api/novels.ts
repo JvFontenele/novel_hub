@@ -77,10 +77,17 @@ export const novelsApi = {
       .delete<DeleteChapterContentResponse>(`/novels/${novelId}/chapters/${chapterId}/content`)
       .then((r) => r.data),
 
-  getChapterContent: (novelId: string, chapterId: string): Promise<ChapterContent> =>
+  getChapterContent: (novelId: string, chapterId: string, language?: string | null): Promise<ChapterContent> =>
     api
-      .get<ChapterContent>(`/novels/${novelId}/chapters/${chapterId}/content`)
+      .get<ChapterContent>(`/novels/${novelId}/chapters/${chapterId}/content`, {
+        params: language ? { language } : undefined,
+      })
       .then((r) => r.data),
+
+  listChapterLanguages: (novelId: string, chapterId: string): Promise<string[]> =>
+    api
+      .get<{ languages: string[] }>(`/novels/${novelId}/chapters/${chapterId}/languages`)
+      .then((r) => r.data.languages),
 
   saveTranslation: (novelId: string, chapterId: string, language: string, content: string): Promise<void> =>
     api

@@ -277,6 +277,30 @@ export async function chaptersRoutes(fastify: FastifyInstance) {
     },
   );
 
+  fastify.get<{ Params: { novelId: string; chapterId: string } }>(
+    '/novels/:novelId/chapters/:chapterId/languages',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['Chapters'],
+        summary: 'List available translation languages for a chapter',
+        security: bearerSecurity,
+        params: chapterParamsSchema,
+        response: {
+          200: {
+            type: 'object',
+            properties: { languages: { type: 'array', items: { type: 'string' } } },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { chapterId } = request.params;
+      const langs = await listAvailableLanguages(chapterId);
+      return reply.send({ languages: langs.map((l) => l.language) });
+    },
+  );
+
   fastify.put<{ Params: { novelId: string; chapterId: string }; Body: { language: string; content: string } }>(
     '/novels/:novelId/chapters/:chapterId/translation',
     {
