@@ -5,7 +5,7 @@ function decodeJwtRole(token: string | null): 'admin' | 'user' | null {
   if (!token) return null;
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload?.role ?? null;
+    return typeof payload?.role === 'string' ? payload.role : null;
   } catch {
     return null;
   }

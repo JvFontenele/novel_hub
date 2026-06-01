@@ -1,10 +1,20 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import DOMPurify from 'dompurify'
 import { novelsApi } from '@/api/novels'
 import { useAuth } from '@/context/AuthContext'
 import type { ChapterListItem } from '@novel-hub/contracts'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+
+function isSafeUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  try {
+    return ['http:', 'https:'].includes(new URL(url).protocol)
+  } catch {
+    return false
+  }
+}
 
 type ReaderFont = 'site' | 'arial' | 'georgia' | 'verdana'
 
@@ -138,18 +148,19 @@ export function ChapterReaderPage() {
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
       const target = event.target as Node
-
-      if (settingsRef.current && !settingsRef.current.contains(target)) {
-        setSettingsOpen(false)
-      }
-
-      if (actionsRef.current && !actionsRef.current.contains(target)) {
-        setActionsOpen(false)
-      }
+      if (settingsRef.current && !settingsRef.current.contains(target)) setSettingsOpen(false)
+      if (actionsRef.current && !actionsRef.current.contains(target)) setActionsOpen(false)
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') { setSettingsOpen(false); setActionsOpen(false) }
     }
 
     document.addEventListener('mousedown', handlePointerDown)
-    return () => document.removeEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [])
 
   useEffect(() => {
@@ -184,16 +195,18 @@ export function ChapterReaderPage() {
   const normalizedReaderFontSize = Math.min(MAX_READER_FONT_SIZE, Math.max(MIN_READER_FONT_SIZE, readerFontSize || DEFAULT_READER_FONT_SIZE))
   const selectedReaderFontFamily = READER_FONT_FAMILIES[readerFont]
   const isSerifReaderFont = readerFont === 'georgia'
-  const readerContentStyle = {
+  const readerContentStyle = useMemo<CSSProperties>(() => ({
     fontFamily: selectedReaderFontFamily,
     fontSize: `${normalizedReaderFontSize}px`,
     lineHeight: isSerifReaderFont
       ? Math.max(1.85, Number((1.62 + normalizedReaderFontSize / 38).toFixed(2)))
       : Math.max(1.75, Number((1.55 + normalizedReaderFontSize / 40).toFixed(2))),
-  } satisfies CSSProperties
-  const readerEmptyStateStyle = {
-    fontFamily: selectedReaderFontFamily,
-  } satisfies CSSProperties
+  }), [selectedReaderFontFamily, normalizedReaderFontSize, isSerifReaderFont])
+
+  const readerEmptyStateStyle = useMemo<CSSProperties>(
+    () => ({ fontFamily: selectedReaderFontFamily }),
+    [selectedReaderFontFamily],
+  )
 
   if (isLoading) {
     return (
@@ -313,9 +326,9 @@ export function ChapterReaderPage() {
                   {actionsOpen && (
                     <div className="reader-popover absolute right-0 top-[calc(100%+0.55rem)] z-20 w-56 rounded-xl border border-ink-3 bg-ink-1 p-2 shadow-xl">
                       <div className="flex flex-col">
-                        {chapterSourceUrl && (
+                        {isSafeUrl(chapterSourceUrl) && (
                           <a
-                            href={chapterSourceUrl}
+                            href={chapterSourceUrl!}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Abrir no site original"
@@ -372,7 +385,7 @@ export function ChapterReaderPage() {
         <div
           className="card reader-surface reader-content chapter-content overflow-x-auto px-6 py-7 sm:px-10 sm:py-11 mb-7"
           style={readerContentStyle}
-          dangerouslySetInnerHTML={{ __html: chapterContentHtml }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapterContentHtml) }}
         />
       ) : (
         <div className="card reader-surface px-6 py-8 sm:px-10 sm:py-11 mb-7">

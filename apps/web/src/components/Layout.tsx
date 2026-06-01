@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
@@ -5,7 +6,7 @@ import { notificationsApi } from '@/api/notifications'
 import { useTheme } from '@/context/ThemeContext'
 
 export function Layout() {
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
@@ -19,17 +20,17 @@ export function Layout() {
 
   const unreadCount = notifications?.filter((n) => !n.read).length ?? 0
 
-  function handleLogout() {
+  const handleLogout = useCallback(() => {
     logout()
     navigate('/login')
-  }
+  }, [logout, navigate])
 
   const navItem = (to: string, label: string, end?: boolean, badge?: number) => (
     <NavLink
       to={to}
       end={end}
       className={({ isActive }) =>
-        `nav-pill ${
+        `nav-pill relative ${
           isActive
             ? 'bg-amber/12 text-amber-light border border-amber/20'
             : 'text-parchment-muted hover:text-parchment hover:bg-ink-2/80'
@@ -75,7 +76,7 @@ export function Layout() {
           <nav className="flex flex-wrap items-center justify-center sm:justify-start gap-1">
             {navItem('/', 'Novels', true)}
             {navItem('/notifications', 'Notificações', false, unreadCount)}
-            {navItem('/admin', 'Admin')}
+            {isAdmin && navItem('/admin', 'Admin')}
           </nav>
 
           <div className="hidden sm:flex items-center gap-3 flex-shrink-0">

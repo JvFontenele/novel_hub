@@ -1,10 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCoverImageUrl, novelsApi, type ChapterOrder } from '@/api/novels'
 import { useAuth } from '@/context/AuthContext'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { AxiosError } from 'axios'
+
+const CHAPTERS_PAGE_SIZE = 20
+const CONTINUE_READING_PAGE_SIZE = 10000
+
+function isSafeUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  try { return ['http:', 'https:'].includes(new URL(url).protocol) }
+  catch { return false }
+}
 
 function formatDate(iso: string | null) {
   if (!iso) return 'sem data'
@@ -17,8 +26,6 @@ function formatDate(iso: string | null) {
 }
 
 export function NovelDetailPage() {
-  const CHAPTERS_PAGE_SIZE = 20
-  const CONTINUE_READING_PAGE_SIZE = 10000
   const { novelId } = useParams<{ novelId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -102,7 +109,7 @@ export function NovelDetailPage() {
     )
 
     setQueuedChapterIds((current) => current.filter((chapterId) => !completedIds.has(chapterId)))
-  }, [chapters, queuedChapterIds.length])
+  }, [chapters, queuedChapterIds])
 
   useEffect(() => {
     if (!novelId || queuedChapterIds.length === 0) return
@@ -145,12 +152,16 @@ export function NovelDetailPage() {
     : 0
   const coverImageUrl = getCoverImageUrl(novel.coverUrl)
   const totalPages = Math.max(1, Math.ceil((chapters?.total ?? 0) / CHAPTERS_PAGE_SIZE))
-  const orderedChapters = [...(allChapters?.items ?? [])].sort(
-    (left, right) => left.chapterNumber - right.chapterNumber,
+  const orderedChapters = useMemo(
+    () => [...(allChapters?.items ?? [])].sort((l, r) => l.chapterNumber - r.chapterNumber),
+    [allChapters],
   )
-  const continueReadingChapter =
-    orderedChapters.find((chapter) => chapter.chapterNumber > (novel.lastReadChapterNumber ?? 0))
-    ?? orderedChapters[orderedChapters.length - 1]
+  const continueReadingChapter = useMemo(
+    () =>
+      orderedChapters.find((ch) => ch.chapterNumber > (novel.lastReadChapterNumber ?? 0))
+      ?? orderedChapters[orderedChapters.length - 1],
+    [orderedChapters, novel.lastReadChapterNumber],
+  )
 
   return (
     <div className="animate-fade-in">
@@ -279,14 +290,18 @@ export function NovelDetailPage() {
               <div key={src.sourceId} className="rounded-lg border border-ink-3 bg-ink-2/50 px-3 py-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <a
-                      href={src.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-amber-light hover:text-amber hover:underline break-all font-body"
-                    >
-                      {src.url}
-                    </a>
+                    {isSafeUrl(src.url) ? (
+                      <a
+                        href={src.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-amber-light hover:text-amber hover:underline break-all font-body"
+                      >
+                        {src.url}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-parchment-muted break-all font-body">{src.url}</span>
+                    )}
                     <p className="mt-1 text-[11px] text-parchment-muted font-body">
                       Status: {src.status} • Última verificação: {formatDate(src.lastCheckedAt)}
                     </p>
@@ -423,15 +438,17 @@ export function NovelDetailPage() {
                         </span>
                       )}
 
-                      <a
-                        href={ch.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Abrir no site original"
-                        className="text-parchment-muted hover:text-parchment transition-colors text-xs"
-                      >
-                        ↗
-                      </a>
+                      {isSafeUrl(ch.url) && (
+                        <a
+                          href={ch.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Abrir no site original"
+                          className="text-parchment-muted hover:text-parchment transition-colors text-xs"
+                        >
+                          ↗
+                        </a>
+                      )}
                     </div>
                   </div>
 

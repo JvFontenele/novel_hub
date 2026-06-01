@@ -1,7 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@/api/admin'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+
+function safeHostname(url: string): string {
+  try { return new URL(url).hostname }
+  catch { return url }
+}
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -20,9 +25,7 @@ const STATUS_STYLES = {
 
 export function AdminPage() {
   const queryClient = useQueryClient()
-  const [hostname, setHostname] = useState('www.empirenovel.com')
-  const [cookies, setCookies] = useState('')
-  const [userAgent, setUserAgent] = useState('')
+  const [form, setForm] = useState({ hostname: 'www.empirenovel.com', cookies: '', userAgent: '' })
 
   const { data: runs, isLoading: runsLoading } = useQuery({
     queryKey: ['admin', 'runs'],
@@ -41,34 +44,30 @@ export function AdminPage() {
     queryFn: adminApi.scraperSettings,
   })
 
-  const saveScraperSettingMutation = useMutation({
-    mutationFn: adminApi.saveScraperSetting,
-    onSuccess: (setting) => {
-      setHostname(setting.hostname)
-      setCookies(setting.cookies ?? '')
-      setUserAgent(setting.userAgent ?? '')
-      queryClient.invalidateQueries({ queryKey: ['admin', 'scraper-settings'] })
-    },
-  })
+  const savedSetting = useMemo(
+    () => scraperSettings?.find((s) => s.hostname === form.hostname),
+    [scraperSettings, form.hostname],
+  )
 
   useEffect(() => {
-    const setting = scraperSettings?.find((item) => item.hostname === hostname)
-    if (!setting) {
-      setCookies('')
-      setUserAgent('')
-      return
-    }
+    setForm((prev) => ({
+      ...prev,
+      cookies: savedSetting?.cookies ?? '',
+      userAgent: savedSetting?.userAgent ?? '',
+    }))
+  }, [savedSetting])
 
-    setCookies(setting.cookies ?? '')
-    setUserAgent(setting.userAgent ?? '')
-  }, [hostname, scraperSettings])
+  const saveScraperSettingMutation = useMutation({
+    mutationFn: adminApi.saveScraperSetting,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'scraper-settings'] }),
+  })
 
   function handleSaveScraperSetting(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     saveScraperSettingMutation.mutate({
-      hostname,
-      cookies,
-      userAgent: userAgent || null,
+      hostname: form.hostname,
+      cookies: form.cookies,
+      userAgent: form.userAgent || null,
     })
   }
 
@@ -102,8 +101,8 @@ export function AdminPage() {
                   <span className="text-xs text-parchment-muted font-body">Domínio</span>
                   <select
                     className="input-field"
-                    value={hostname}
-                    onChange={(event) => setHostname(event.target.value)}
+                    value={form.hostname}
+                    onChange={(e) => setForm((prev) => ({ ...prev, hostname: e.target.value }))}
                   >
                     <option value="www.empirenovel.com">www.empirenovel.com</option>
                     <option value="empirenovel.com">empirenovel.com</option>
@@ -116,8 +115,8 @@ export function AdminPage() {
                   <span className="text-xs text-parchment-muted font-body">User-Agent opcional</span>
                   <input
                     className="input-field"
-                    value={userAgent}
-                    onChange={(event) => setUserAgent(event.target.value)}
+                    value={form.userAgent}
+                    onChange={(e) => setForm((prev) => ({ ...prev, userAgent: e.target.value }))}
                     placeholder="Deixe vazio para usar o padrão"
                   />
                 </label>
@@ -127,8 +126,8 @@ export function AdminPage() {
                 <span className="text-xs text-parchment-muted font-body">Cookie header</span>
                 <textarea
                   className="input-field min-h-40 resize-y font-mono text-xs leading-relaxed"
-                  value={cookies}
-                  onChange={(event) => setCookies(event.target.value)}
+                  value={form.cookies}
+                  onChange={(e) => setForm((prev) => ({ ...prev, cookies: e.target.value }))}
                   placeholder="cf_clearance=...; connect.sid=...; outros=..."
                 />
               </label>
@@ -174,11 +173,11 @@ export function AdminPage() {
                     <button
                       key={setting.hostname}
                       type="button"
-                      onClick={() => {
-                        setHostname(setting.hostname)
-                        setCookies(setting.cookies ?? '')
-                        setUserAgent(setting.userAgent ?? '')
-                      }}
+                      onClick={() => setForm({
+                        hostname: setting.hostname,
+                        cookies: setting.cookies ?? '',
+                        userAgent: setting.userAgent ?? '',
+                      })}
                       className="w-full rounded-xl border border-ink-3 bg-ink-1/60 p-4 text-left hover:border-accent/50 hover:bg-ink-1"
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -238,7 +237,7 @@ export function AdminPage() {
                         className="text-xs text-parchment-dim hover:text-amber-light font-body truncate block"
                         title={run.sourceUrl}
                       >
-                        {new URL(run.sourceUrl).hostname}
+                        {safeHostname(run.sourceUrl)}
                       </a>
                     </td>
                     <td className="px-4 py-3">

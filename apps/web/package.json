@@ -12,11 +12,13 @@
     "@novel-hub/contracts": "workspace:*",
     "@tanstack/react-query": "^5.28.0",
     "axios": "^1.6.8",
+    "dompurify": "^3.4.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.22.3"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.2.0",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
