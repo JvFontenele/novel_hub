@@ -1,5 +1,7 @@
 import Fastify from 'fastify';
 import sensible from '@fastify/sensible';
+import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import { authPlugin } from './plugins/auth.plugin.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { novelsRoutes } from './modules/novels/novels.routes.js';
@@ -20,6 +22,8 @@ export async function buildApp() {
   });
 
   await fastify.register(sensible);
+  await fastify.register(cors, { origin: config.NODE_ENV === 'production' ? false : true });
+  await fastify.register(rateLimit, { max: 100, timeWindow: '1 minute' });
   await fastify.register(authPlugin);
   await registerSwagger(fastify);
 

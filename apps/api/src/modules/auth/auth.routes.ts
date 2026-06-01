@@ -28,7 +28,13 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     const passwordHash = await authService.hashPassword(password);
-    const user = await authService.createUser(name, email, passwordHash);
+    let user;
+    try {
+      user = await authService.createUser(name, email, passwordHash);
+    } catch (err: any) {
+      if (err.code === '23505') return reply.code(409).send({ message: 'Email already registered' });
+      throw err;
+    }
     const token = fastify.jwt.sign({ sub: user.id, role: user.role });
 
     return reply.code(201).send({

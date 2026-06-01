@@ -48,7 +48,7 @@ export function getChapterContentJobId(chapterId: string) {
 }
 
 export function getManualChapterContentJobId(chapterId: string) {
-  return `${getChapterContentJobId(chapterId)}-manual-${Date.now()}`;
+  return `${getChapterContentJobId(chapterId)}-manual-${crypto.randomUUID()}`;
 }
 
 export async function hasPendingChapterContentJob(chapterId: string) {

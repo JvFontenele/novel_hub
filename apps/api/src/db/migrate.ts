@@ -54,7 +54,7 @@ async function migrate() {
 
       await sql.begin(async (tx) => {
         await tx.unsafe(content);
-        await tx.unsafe('INSERT INTO _migrations (filename) VALUES ($1)', [filename]);
+        await tx`INSERT INTO _migrations (filename) VALUES (${filename})`;
       });
 
       console.log(`[migrate] applied ${filename}`);
