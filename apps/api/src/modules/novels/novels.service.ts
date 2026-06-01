@@ -1,5 +1,4 @@
 import { sql } from '../../db/client.js';
-import type { TransactionSql } from 'postgres';
 import { enqueueCollect } from '../../queue/producer.js';
 import { normalizeSourceUrl, resolveConnectorKey } from '@novel-hub/scraping';
 
@@ -7,7 +6,7 @@ export async function registerNovel(adminId: string, sourceUrl: string, displayN
   const normalizedUrl = normalizeSourceUrl(sourceUrl);
   const connectorKey = resolveConnectorKey(normalizedUrl);
 
-  const { novel, source } = await sql.begin(async (tx: TransactionSql) => {
+  const { novel, source } = await sql.begin(async (tx: typeof sql) => {
     const [novel] = await tx`
       INSERT INTO novels (title)
       VALUES (${displayName})
